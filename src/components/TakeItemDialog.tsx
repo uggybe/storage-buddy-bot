@@ -10,6 +10,7 @@ import { toast } from "sonner";
 type Item = {
   id: string;
   name: string;
+  item_type: "единичный" | "множественный";
   quantity: number;
 };
 
@@ -38,7 +39,9 @@ export const TakeItemDialog = ({
       return;
     }
 
-    if (quantity > item.quantity) {
+    const actualQuantity = item.item_type === "единичный" ? 1 : quantity;
+
+    if (item.item_type === "множественный" && actualQuantity > item.quantity) {
       toast.error("Недостаточно предметов на складе");
       return;
     }
@@ -66,19 +69,21 @@ export const TakeItemDialog = ({
           item_id: item.id,
           user_id: appUser.id,
           action: "взято",
-          quantity,
+          quantity: actualQuantity,
           purpose: purpose.trim(),
         });
 
       if (transactionError) throw transactionError;
 
-      // Update item quantity
-      const { error: updateError } = await supabase
-        .from("items")
-        .update({ quantity: item.quantity - quantity })
-        .eq("id", item.id);
+      // Update item quantity only for multiple items
+      if (item.item_type === "множественный") {
+        const { error: updateError } = await supabase
+          .from("items")
+          .update({ quantity: item.quantity - actualQuantity })
+          .eq("id", item.id);
 
-      if (updateError) throw updateError;
+        if (updateError) throw updateError;
+      }
 
       toast.success("Предмет взят");
       onSuccess();
@@ -100,21 +105,23 @@ export const TakeItemDialog = ({
           <DialogTitle>Взять: {item.name}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="quantity">Количество</Label>
-            <Input
-              id="quantity"
-              type="number"
-              min="1"
-              max={item.quantity}
-              value={quantity}
-              onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-              disabled={isLoading}
-            />
-            <p className="text-xs text-muted-foreground">
-              Доступно: {item.quantity}
-            </p>
-          </div>
+          {item.item_type === "множественный" && (
+            <div className="space-y-2">
+              <Label htmlFor="quantity">Количество</Label>
+              <Input
+                id="quantity"
+                type="number"
+                min="1"
+                max={item.quantity}
+                value={quantity}
+                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                disabled={isLoading}
+              />
+              <p className="text-xs text-muted-foreground">
+                Доступно: {item.quantity}
+              </p>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="purpose">Назначение *</Label>

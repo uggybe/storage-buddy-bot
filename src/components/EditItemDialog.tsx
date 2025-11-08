@@ -13,6 +13,7 @@ type Item = {
   name: string;
   category: string;
   warehouse: string;
+  item_type: "единичный" | "множественный";
   quantity: number;
   critical_quantity: number | null;
   notes: string | null;
@@ -34,6 +35,7 @@ export const EditItemDialog = ({
     name: "",
     category: "",
     warehouse: "",
+    item_type: "множественный" as "единичный" | "множественный",
     quantity: 1,
     critical_quantity: "",
     notes: "",
@@ -45,6 +47,7 @@ export const EditItemDialog = ({
         name: item.name,
         category: item.category,
         warehouse: item.warehouse,
+        item_type: item.item_type,
         quantity: item.quantity,
         critical_quantity: item.critical_quantity?.toString() || "",
         notes: item.notes || "",
@@ -69,8 +72,9 @@ export const EditItemDialog = ({
           name: formData.name,
           category: formData.category,
           warehouse: formData.warehouse as "Мастерская" | "Холодный" | "Теплый",
-          quantity: formData.quantity,
-          critical_quantity: formData.critical_quantity ? parseInt(formData.critical_quantity) : null,
+          item_type: formData.item_type,
+          quantity: formData.item_type === "единичный" ? 1 : formData.quantity,
+          critical_quantity: formData.item_type === "единичный" ? null : (formData.critical_quantity ? parseInt(formData.critical_quantity) : null),
           notes: formData.notes || null,
         })
         .eq("id", item.id);
@@ -134,29 +138,50 @@ export const EditItemDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-quantity">Количество</Label>
-            <Input
-              id="edit-quantity"
-              type="number"
-              min="0"
-              value={formData.quantity}
-              onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
+            <Label htmlFor="edit-item-type">Тип предмета *</Label>
+            <Select
+              value={formData.item_type}
+              onValueChange={(value: "единичный" | "множественный") => setFormData({ ...formData, item_type: value })}
               disabled={isLoading}
-            />
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="единичный">Единичный</SelectItem>
+                <SelectItem value="множественный">Множественный</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="edit-critical">Критическое количество</Label>
-            <Input
-              id="edit-critical"
-              type="number"
-              min="0"
-              value={formData.critical_quantity}
-              onChange={(e) => setFormData({ ...formData, critical_quantity: e.target.value })}
-              disabled={isLoading}
-              placeholder="Необязательно"
-            />
-          </div>
+          {formData.item_type === "множественный" && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="edit-quantity">Количество</Label>
+                <Input
+                  id="edit-quantity"
+                  type="number"
+                  min="0"
+                  value={formData.quantity}
+                  onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-critical">Критическое количество</Label>
+                <Input
+                  id="edit-critical"
+                  type="number"
+                  min="0"
+                  value={formData.critical_quantity}
+                  onChange={(e) => setFormData({ ...formData, critical_quantity: e.target.value })}
+                  disabled={isLoading}
+                  placeholder="Необязательно"
+                />
+              </div>
+            </>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="edit-notes">Примечания</Label>
