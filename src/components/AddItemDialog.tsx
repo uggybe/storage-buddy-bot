@@ -41,7 +41,7 @@ export const AddItemDialog = ({
       const { error } = await supabase.from("items").insert({
         name: formData.name,
         category: formData.category,
-        warehouse: formData.warehouse as "Мастерская" | "Холодный склад" | "Теплый склад",
+        warehouse: formData.warehouse as "Мастерская" | "Холодный" | "Теплый",
         quantity: formData.quantity,
         critical_quantity: formData.critical_quantity ? parseInt(formData.critical_quantity) : null,
         notes: formData.notes || null,
