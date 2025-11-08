@@ -41,7 +41,7 @@ export const AddItemDialog = ({
       const { error } = await supabase.from("items").insert({
         name: formData.name,
         category: formData.category,
-        warehouse: formData.warehouse as "Мастерская" | "Холодный" | "Теплый",
+        warehouse: formData.warehouse as "Мастерская" | "Холодный склад" | "Теплый склад",
         quantity: formData.quantity,
         critical_quantity: formData.critical_quantity ? parseInt(formData.critical_quantity) : null,
         notes: formData.notes || null,
@@ -107,8 +107,8 @@ export const AddItemDialog = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Мастерская">Мастерская</SelectItem>
-                <SelectItem value="Холодный">Холодный</SelectItem>
-                <SelectItem value="Теплый">Теплый</SelectItem>
+                <SelectItem value="Холодный">Холодный склад</SelectItem>
+                <SelectItem value="Теплый">Теплый склад</SelectItem>
               </SelectContent>
             </Select>
           </div>
