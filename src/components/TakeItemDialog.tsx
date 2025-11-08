@@ -46,21 +46,25 @@ export const TakeItemDialog = ({
     setIsLoading(true);
 
     try {
-      // Get user ID
-      const { data: user } = await supabase
+      // Get authenticated user
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error("Not authenticated");
+
+      // Get user's app_users record
+      const { data: appUser } = await supabase
         .from("app_users")
         .select("id")
-        .eq("name", userName)
+        .eq("user_id", session.user.id)
         .single();
 
-      if (!user) throw new Error("User not found");
+      if (!appUser) throw new Error("User profile not found");
 
       // Create transaction
       const { error: transactionError } = await supabase
         .from("transactions")
         .insert({
           item_id: item.id,
-          user_id: user.id,
+          user_id: appUser.id,
           action: "взято",
           quantity,
           purpose: purpose.trim(),

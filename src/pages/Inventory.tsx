@@ -32,13 +32,39 @@ const Inventory = () => {
   const [userName, setUserName] = useState("");
 
   useEffect(() => {
-    const user = localStorage.getItem("warehouse_user");
-    if (!user) {
-      navigate("/");
-      return;
-    }
-    setUserName(user);
-    fetchItems();
+    // Check authentication status
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate("/");
+        return;
+      }
+      
+      // Fetch user's name from app_users table
+      supabase
+        .from("app_users")
+        .select("name")
+        .eq("user_id", session.user.id)
+        .single()
+        .then(({ data, error }) => {
+          if (error) {
+            console.error("Error fetching user:", error);
+            toast.error("Ошибка загрузки данных пользователя");
+            return;
+          }
+          setUserName(data?.name || "");
+        });
+      
+      fetchItems();
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session) {
+        navigate("/");
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
   const fetchItems = async () => {
@@ -81,9 +107,14 @@ const Inventory = () => {
     setFilteredItems(filtered);
   }, [items, searchQuery, selectedWarehouse, selectedCategory]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("warehouse_user");
-    navigate("/");
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      navigate("/");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Ошибка выхода");
+    }
   };
 
   return (
