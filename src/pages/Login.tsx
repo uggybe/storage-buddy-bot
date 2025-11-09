@@ -132,19 +132,10 @@ const Login = () => {
               <p className="text-muted-foreground">Вход через Telegram...</p>
             </div>
           ) : authError ? (
-            <div className="text-center py-8 space-y-4">
+            <div className="text-center py-8">
               <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-sm text-red-600">{authError}</p>
               </div>
-              <Button
-                onClick={() => {
-                  setAuthError(null);
-                  handleTelegramAuth();
-                }}
-                className="w-full"
-              >
-                Попробовать снова
-              </Button>
             </div>
           ) : (
             <div className="text-center py-8">
