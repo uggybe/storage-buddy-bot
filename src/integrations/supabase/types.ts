@@ -43,6 +43,7 @@ export type Database = {
           current_user_id: string | null
           id: string
           item_type: Database["public"]["Enums"]["item_type"]
+          location: string | null
           name: string
           notes: string | null
           quantity: number
@@ -56,6 +57,7 @@ export type Database = {
           current_user_id?: string | null
           id?: string
           item_type?: Database["public"]["Enums"]["item_type"]
+          location?: string | null
           name: string
           notes?: string | null
           quantity?: number
@@ -69,6 +71,7 @@ export type Database = {
           current_user_id?: string | null
           id?: string
           item_type?: Database["public"]["Enums"]["item_type"]
+          location?: string | null
           name?: string
           notes?: string | null
           quantity?: number

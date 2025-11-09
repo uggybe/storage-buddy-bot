@@ -12,6 +12,7 @@ type Item = {
   name: string;
   item_type: "единичный" | "множественный";
   quantity: number;
+  location: string | null;
 };
 
 export const TakeItemDialog = ({
@@ -105,6 +106,13 @@ export const TakeItemDialog = ({
           <DialogTitle>Взять: {item.name}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {item.location && (
+            <div className="space-y-2">
+              <Label>Местоположение</Label>
+              <p className="text-sm text-muted-foreground">{item.location}</p>
+            </div>
+          )}
+
           {item.item_type === "множественный" && (
             <div className="space-y-2">
               <Label htmlFor="quantity">Количество</Label>

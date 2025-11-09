@@ -19,6 +19,7 @@ type Item = {
   quantity: number;
   critical_quantity: number | null;
   current_user_id: string | null;
+  location: string | null;
   notes: string | null;
 };
 
@@ -52,6 +53,7 @@ export const ItemCard = ({
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   // Calculate border color based on item type and status
   const getBorderColor = () => {
@@ -80,11 +82,26 @@ export const ItemCard = ({
 
   const isLowStock = item.item_type === "множественный" && item.critical_quantity && item.quantity <= item.critical_quantity;
 
-  // Load current user on mount if item is taken
+  // Load current authenticated user and item's current user
   useEffect(() => {
-    const fetchCurrentUser = async () => {
-      if (item.item_type === "единичный" && item.current_user_id) {
-        try {
+    const fetchUsers = async () => {
+      try {
+        // Get current authenticated user's app_users id
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const { data: appUser } = await supabase
+            .from("app_users")
+            .select("id")
+            .eq("user_id", session.user.id)
+            .single();
+
+          if (appUser) {
+            setCurrentUserId(appUser.id);
+          }
+        }
+
+        // Fetch user who currently has the item (for single items)
+        if (item.item_type === "единичный" && item.current_user_id) {
           const { data, error } = await supabase
             .from("app_users")
             .select("name")
@@ -93,13 +110,15 @@ export const ItemCard = ({
 
           if (error) throw error;
           setCurrentUser(data);
-        } catch (error) {
-          console.error("Error fetching current user:", error);
+        } else {
+          setCurrentUser(null);
         }
+      } catch (error) {
+        console.error("Error fetching users:", error);
       }
     };
 
-    fetchCurrentUser();
+    fetchUsers();
   }, [item.current_user_id, item.item_type]);
 
   const handleTakeClick = () => {
@@ -153,28 +172,59 @@ export const ItemCard = ({
           {item.item_type === "единичный" && currentUser && (
             <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
               <p className="text-sm">
-                <span className="font-medium">Используется:</span> {currentUser.name}
+                <span className="font-medium">Используется:</span>{" "}
+                {item.current_user_id === currentUserId ? "Вами" : currentUser.name}
               </p>
             </div>
           )}
         </CardContent>
 
         <CardFooter className="gap-2">
-          <Button
-            variant="default"
-            className="flex-1"
-            onClick={handleTakeClick}
-            disabled={item.item_type === "множественный" && item.quantity === 0}
-          >
-            Взять
-          </Button>
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={() => setIsReturnDialogOpen(true)}
-          >
-            Вернуть
-          </Button>
+          {/* For single items: show buttons based on current_user_id */}
+          {item.item_type === "единичный" ? (
+            <>
+              {/* If not taken, show Take button */}
+              {!item.current_user_id && (
+                <Button
+                  variant="default"
+                  className="flex-1"
+                  onClick={handleTakeClick}
+                >
+                  Взять
+                </Button>
+              )}
+              {/* If taken by current user, show Return button */}
+              {item.current_user_id === currentUserId && (
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setIsReturnDialogOpen(true)}
+                >
+                  Вернуть
+                </Button>
+              )}
+              {/* If taken by someone else, hide both buttons */}
+            </>
+          ) : (
+            /* For multiple items: always show both buttons */
+            <>
+              <Button
+                variant="default"
+                className="flex-1"
+                onClick={handleTakeClick}
+                disabled={item.quantity === 0}
+              >
+                Взять
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setIsReturnDialogOpen(true)}
+              >
+                Вернуть
+              </Button>
+            </>
+          )}
         </CardFooter>
       </Card>
 
