@@ -16,6 +16,7 @@ type Item = {
   item_type: "единичный" | "множественный";
   quantity: number;
   critical_quantity: number | null;
+  location: string | null;
   notes: string | null;
 };
 
@@ -38,6 +39,7 @@ export const EditItemDialog = ({
     item_type: "множественный" as "единичный" | "множественный",
     quantity: 1,
     critical_quantity: "",
+    location: "",
     notes: "",
   });
 
@@ -50,6 +52,7 @@ export const EditItemDialog = ({
         item_type: item.item_type,
         quantity: item.quantity,
         critical_quantity: item.critical_quantity?.toString() || "",
+        location: item.location || "",
         notes: item.notes || "",
       });
     }
@@ -75,6 +78,7 @@ export const EditItemDialog = ({
           item_type: formData.item_type,
           quantity: formData.item_type === "единичный" ? 1 : formData.quantity,
           critical_quantity: formData.item_type === "единичный" ? null : (formData.critical_quantity ? parseInt(formData.critical_quantity) : null),
+          location: formData.location || null,
           notes: formData.notes || null,
         })
         .eq("id", item.id);
@@ -182,6 +186,17 @@ export const EditItemDialog = ({
               </div>
             </>
           )}
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-location">Местоположение</Label>
+            <Input
+              id="edit-location"
+              value={formData.location}
+              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              disabled={isLoading}
+              placeholder="Например: Полка 3, ряд 2"
+            />
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="edit-notes">Примечания</Label>

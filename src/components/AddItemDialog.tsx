@@ -25,6 +25,7 @@ export const AddItemDialog = ({
     item_type: "множественный" as "единичный" | "множественный",
     quantity: 1,
     critical_quantity: "",
+    location: "",
     notes: "",
   });
 
@@ -46,6 +47,7 @@ export const AddItemDialog = ({
         item_type: formData.item_type,
         quantity: formData.item_type === "единичный" ? 1 : formData.quantity,
         critical_quantity: formData.item_type === "единичный" ? null : (formData.critical_quantity ? parseInt(formData.critical_quantity) : null),
+        location: formData.location || null,
         notes: formData.notes || null,
       });
 
@@ -61,6 +63,7 @@ export const AddItemDialog = ({
         item_type: "множественный",
         quantity: 1,
         critical_quantity: "",
+        location: "",
         notes: "",
       });
     } catch (error) {
@@ -161,6 +164,17 @@ export const AddItemDialog = ({
               </div>
             </>
           )}
+
+          <div className="space-y-2">
+            <Label htmlFor="location">Местоположение</Label>
+            <Input
+              id="location"
+              value={formData.location}
+              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              disabled={isLoading}
+              placeholder="Например: Полка 3, ряд 2"
+            />
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="notes">Примечания</Label>
