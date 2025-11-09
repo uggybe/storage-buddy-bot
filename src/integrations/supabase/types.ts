@@ -44,6 +44,7 @@ export type Database = {
           id: string
           item_type: Database["public"]["Enums"]["item_type"]
           location: string | null
+          model: string | null
           name: string
           notes: string | null
           quantity: number
@@ -58,6 +59,7 @@ export type Database = {
           id?: string
           item_type?: Database["public"]["Enums"]["item_type"]
           location?: string | null
+          model?: string | null
           name: string
           notes?: string | null
           quantity?: number
@@ -72,6 +74,7 @@ export type Database = {
           id?: string
           item_type?: Database["public"]["Enums"]["item_type"]
           location?: string | null
+          model?: string | null
           name?: string
           notes?: string | null
           quantity?: number

@@ -21,6 +21,7 @@ export const AddItemDialog = ({
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
+    model: "",
     category: "",
     warehouse: "",
     item_type: "множественный" as "единичный" | "множественный",
@@ -32,9 +33,15 @@ export const AddItemDialog = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name || !formData.category || !formData.warehouse) {
       toast.error("Заполните все обязательные поля");
+      return;
+    }
+
+    // Для множественных предметов требуем минимальное количество
+    if (formData.item_type === "множественный" && !formData.critical_quantity) {
+      toast.error("Для множественных предметов обязательно укажите минимальное количество");
       return;
     }
 
@@ -43,11 +50,12 @@ export const AddItemDialog = ({
     try {
       const { error } = await supabase.from("items").insert({
         name: formData.name,
+        model: formData.model || null,
         category: formData.category,
         warehouse: formData.warehouse as "Мастерская" | "Холодный" | "Теплый",
         item_type: formData.item_type,
         quantity: formData.item_type === "единичный" ? 1 : formData.quantity,
-        critical_quantity: formData.item_type === "единичный" ? null : (formData.critical_quantity ? parseInt(formData.critical_quantity) : null),
+        critical_quantity: formData.item_type === "единичный" ? null : parseInt(formData.critical_quantity),
         location: formData.location || null,
         notes: formData.notes || null,
       });
@@ -59,6 +67,7 @@ export const AddItemDialog = ({
       onOpenChange(false);
       setFormData({
         name: "",
+        model: "",
         category: "",
         warehouse: "",
         item_type: "множественный",
@@ -77,7 +86,7 @@ export const AddItemDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Добавить предмет</DialogTitle>
         </DialogHeader>
@@ -89,6 +98,19 @@ export const AddItemDialog = ({
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               disabled={isLoading}
+              className="w-full"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="model">Модель</Label>
+            <Input
+              id="model"
+              value={formData.model}
+              onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+              disabled={isLoading}
+              placeholder="Например: iPhone 13 Pro"
+              className="w-full"
             />
           </div>
 
@@ -137,17 +159,37 @@ export const AddItemDialog = ({
           </div>
 
           {formData.item_type === "множественный" && (
-            <div className="space-y-2">
-              <Label htmlFor="quantity">Количество</Label>
-              <Input
-                id="quantity"
-                type="number"
-                min="1"
-                value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 1 })}
-                disabled={isLoading}
-              />
-            </div>
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="quantity">Количество</Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  min="0"
+                  value={formData.quantity}
+                  onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
+                  disabled={isLoading}
+                  className="w-full"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="critical_quantity">Минимальное количество *</Label>
+                <Input
+                  id="critical_quantity"
+                  type="number"
+                  min="0"
+                  value={formData.critical_quantity}
+                  onChange={(e) => setFormData({ ...formData, critical_quantity: e.target.value })}
+                  disabled={isLoading}
+                  className="w-full"
+                  placeholder="Укажите минимальное количество"
+                />
+                <p className="text-xs text-muted-foreground">
+                  При достижении этого количества рамка станет желтой. Укажите 0 для отключения предупреждения.
+                </p>
+              </div>
+            </>
           )}
 
           <div className="space-y-2">
@@ -158,6 +200,7 @@ export const AddItemDialog = ({
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
               disabled={isLoading}
               placeholder="Например: Полка 3, ряд 2"
+              className="w-full"
             />
           </div>
 
@@ -169,6 +212,7 @@ export const AddItemDialog = ({
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               disabled={isLoading}
               rows={3}
+              className="w-full"
             />
           </div>
 
