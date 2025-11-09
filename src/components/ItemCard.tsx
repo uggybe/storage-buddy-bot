@@ -57,6 +57,7 @@ export const ItemCard = ({
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [hasUserTakenItem, setHasUserTakenItem] = useState(false);
+  const [purpose, setPurpose] = useState<string | null>(null);
 
   // Calculate border color based on item type and status
   const getBorderColor = () => {
@@ -65,6 +66,11 @@ export const ItemCard = ({
       return item.current_user_id ? "border-yellow-500 border-2" : "border-green-500 border-2";
     } else {
       // Multiple item logic
+      // Red if quantity is 0 (out of stock)
+      if (item.quantity === 0) {
+        return "border-red-500 border-2";
+      }
+
       if (!item.critical_quantity) {
         // No critical quantity set, assume sufficient
         return "border-green-500 border-2";
@@ -133,8 +139,24 @@ export const ItemCard = ({
 
           if (error) throw error;
           setCurrentUser(data);
+
+          // Fetch purpose from last "взято" transaction
+          const { data: transaction } = await supabase
+            .from("transactions")
+            .select("purpose")
+            .eq("item_id", item.id)
+            .eq("user_id", item.current_user_id)
+            .eq("action", "взято")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .single();
+
+          if (transaction) {
+            setPurpose(transaction.purpose);
+          }
         } else {
           setCurrentUser(null);
+          setPurpose(null);
         }
       } catch (error) {
         console.error("Error fetching users:", error);
@@ -172,7 +194,13 @@ export const ItemCard = ({
         </CardHeader>
 
         <CardContent className="space-y-2">
-          {item.item_type === "множественный" && (
+          {item.item_type === "множественный" && item.quantity === 0 && (
+            <div className="flex items-center gap-2 text-red-600">
+              <span className="text-lg font-bold">Закончился 😢</span>
+            </div>
+          )}
+
+          {item.item_type === "множественный" && item.quantity > 0 && (
             <div className="flex items-center gap-2">
               <Package className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm">
@@ -181,7 +209,7 @@ export const ItemCard = ({
             </div>
           )}
 
-          {isLowStock && (
+          {isLowStock && item.quantity > 0 && (
             <div className="flex items-center gap-2 text-red-600">
               <AlertTriangle className="h-4 w-4" />
               <span className="text-sm font-medium">Критически мало!</span>
@@ -190,6 +218,14 @@ export const ItemCard = ({
 
           {item.notes && (
             <p className="text-sm text-muted-foreground mt-2">{item.notes}</p>
+          )}
+
+          {purpose && item.item_type === "единичный" && (
+            <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
+              <p className="text-sm">
+                <span className="font-medium">Назначение:</span> {purpose}
+              </p>
+            </div>
           )}
 
           {item.item_type === "единичный" && currentUser && (
@@ -231,14 +267,15 @@ export const ItemCard = ({
           ) : (
             /* For multiple items: show Take, Return (if user has taken), and Add buttons */
             <>
-              <Button
-                variant="default"
-                className="flex-1"
-                onClick={handleTakeClick}
-                disabled={item.quantity === 0}
-              >
-                Взять
-              </Button>
+              {item.quantity > 0 && (
+                <Button
+                  variant="default"
+                  className="flex-1"
+                  onClick={handleTakeClick}
+                >
+                  Взять
+                </Button>
+              )}
               {hasUserTakenItem && (
                 <Button
                   variant="outline"
