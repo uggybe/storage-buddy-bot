@@ -14,14 +14,75 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isTelegramAuth, setIsTelegramAuth] = useState(false);
   const navigate = useNavigate();
+
+  // Auto-login via Telegram
+  const handleTelegramAuth = async () => {
+    const tg = window.Telegram?.WebApp;
+    if (!tg?.initDataUnsafe?.user) {
+      return false;
+    }
+
+    const telegramUser = tg.initDataUnsafe.user;
+    const telegramId = telegramUser.id;
+    const userName = telegramUser.first_name + (telegramUser.last_name ? ` ${telegramUser.last_name}` : '');
+
+    // Create unique email based on Telegram ID
+    const telegramEmail = `telegram_${telegramId}@telegram.app`;
+    const telegramPassword = `tg_secure_${telegramId}_${process.env.REACT_APP_TELEGRAM_SECRET || 'secret'}`;
+
+    setIsLoading(true);
+    setIsTelegramAuth(true);
+
+    try {
+      // Try to sign in first
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: telegramEmail,
+        password: telegramPassword,
+      });
+
+      if (signInError) {
+        // If sign in fails, try to sign up
+        const { error: signUpError } = await supabase.auth.signUp({
+          email: telegramEmail,
+          password: telegramPassword,
+          options: {
+            data: {
+              name: userName,
+              telegram_id: telegramId,
+              telegram_username: telegramUser.username || '',
+            },
+          },
+        });
+
+        if (signUpError) throw signUpError;
+
+        toast.success(`Добро пожаловать, ${userName}!`);
+      } else {
+        toast.success(`С возвращением, ${userName}!`);
+      }
+
+      return true;
+    } catch (error: any) {
+      console.error("Telegram auth error:", error);
+      toast.error("Ошибка автоматического входа через Telegram");
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Check if user is already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         navigate("/inventory");
+        return;
       }
+
+      // Try Telegram auto-login if not logged in
+      handleTelegramAuth();
     });
 
     // Listen for auth changes
@@ -105,9 +166,17 @@ const Login = () => {
         <CardHeader className="text-center">
           <img src={logo} alt="ЦЭПП Services" className="h-16 mx-auto mb-4" />
           <CardTitle className="text-2xl">Складской учет</CardTitle>
-          <CardDescription>Войдите или зарегистрируйтесь</CardDescription>
+          <CardDescription>
+            {isTelegramAuth ? "Вход через Telegram..." : "Войдите или зарегистрируйтесь"}
+          </CardDescription>
         </CardHeader>
         <CardContent>
+          {isTelegramAuth ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Выполняется вход через Telegram...</p>
+            </div>
+          ) : (
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Вход</TabsTrigger>
