@@ -137,32 +137,17 @@ export const AddItemDialog = ({
           </div>
 
           {formData.item_type === "множественный" && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="quantity">Количество</Label>
-                <Input
-                  id="quantity"
-                  type="number"
-                  min="1"
-                  value={formData.quantity}
-                  onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 1 })}
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="critical">Критическое количество</Label>
-                <Input
-                  id="critical"
-                  type="number"
-                  min="0"
-                  value={formData.critical_quantity}
-                  onChange={(e) => setFormData({ ...formData, critical_quantity: e.target.value })}
-                  disabled={isLoading}
-                  placeholder="Необязательно"
-                />
-              </div>
-            </>
+            <div className="space-y-2">
+              <Label htmlFor="quantity">Количество</Label>
+              <Input
+                id="quantity"
+                type="number"
+                min="1"
+                value={formData.quantity}
+                onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 1 })}
+                disabled={isLoading}
+              />
+            </div>
           )}
 
           <div className="space-y-2">
