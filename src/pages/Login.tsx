@@ -80,25 +80,39 @@ const Login = () => {
   };
 
   useEffect(() => {
-    // Check if user is already logged in
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    let mounted = true;
+
+    const initAuth = async () => {
+      // Check if user is already logged in
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!mounted) return;
+
       if (session) {
         navigate("/inventory");
         return;
       }
 
+      // Wait a bit for Telegram WebApp to initialize
+      await new Promise(resolve => setTimeout(resolve, 500));
+      if (!mounted) return;
+
       // Try Telegram auto-login if not logged in
-      handleTelegramAuth();
-    });
+      await handleTelegramAuth();
+    };
+
+    initAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
+      if (session && mounted) {
         navigate("/inventory");
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
   return (
@@ -118,19 +132,10 @@ const Login = () => {
               <p className="text-muted-foreground">Вход через Telegram...</p>
             </div>
           ) : authError ? (
-            <div className="text-center py-8 space-y-4">
+            <div className="text-center py-8">
               <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-sm text-red-600">{authError}</p>
               </div>
-              <Button
-                onClick={() => {
-                  setAuthError(null);
-                  handleTelegramAuth();
-                }}
-                className="w-full"
-              >
-                Попробовать снова
-              </Button>
             </div>
           ) : (
             <div className="text-center py-8">

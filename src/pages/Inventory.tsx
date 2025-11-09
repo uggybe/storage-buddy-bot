@@ -33,8 +33,31 @@ const Inventory = () => {
 
   useEffect(() => {
     // Check authentication status
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) {
+        navigate("/");
+        return;
+      }
+
+      // Check if user has telegram_id and is whitelisted
+      const telegramId = session.user.user_metadata?.telegram_id;
+
+      if (!telegramId) {
+        // Old user without telegram_id - force logout
+        toast.error("Доступ ограничен. Требуется вход через Telegram Mini App.");
+        await supabase.auth.signOut();
+        navigate("/");
+        return;
+      }
+
+      // Check if user is still whitelisted
+      const { data: isWhitelisted } = await supabase.rpc('is_telegram_user_whitelisted', {
+        user_telegram_id: telegramId
+      });
+
+      if (!isWhitelisted) {
+        toast.error("У вас больше нет доступа к этому приложению.");
+        await supabase.auth.signOut();
         navigate("/");
         return;
       }

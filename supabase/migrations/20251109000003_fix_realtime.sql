@@ -1,31 +1,39 @@
 -- Fix and enable Realtime for items and transactions tables
+-- This migration can be run multiple times safely
 
--- Drop tables from publication if they exist (to avoid errors)
 DO $$
 BEGIN
-    -- Try to drop items from publication
-    BEGIN
-        ALTER PUBLICATION supabase_realtime DROP TABLE public.items;
-    EXCEPTION
-        WHEN OTHERS THEN NULL;
-    END;
+  -- Step 1: Add items table to publication if not already added
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+    AND schemaname = 'public'
+    AND tablename = 'items'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.items;
+    RAISE NOTICE 'Added items table to supabase_realtime publication';
+  ELSE
+    RAISE NOTICE 'Items table already in supabase_realtime publication';
+  END IF;
 
-    -- Try to drop transactions from publication
-    BEGIN
-        ALTER PUBLICATION supabase_realtime DROP TABLE public.transactions;
-    EXCEPTION
-        WHEN OTHERS THEN NULL;
-    END;
+  -- Step 2: Add transactions table to publication if not already added
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+    AND schemaname = 'public'
+    AND tablename = 'transactions'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.transactions;
+    RAISE NOTICE 'Added transactions table to supabase_realtime publication';
+  ELSE
+    RAISE NOTICE 'Transactions table already in supabase_realtime publication';
+  END IF;
 END $$;
 
--- Add tables to publication
-ALTER PUBLICATION supabase_realtime ADD TABLE public.items;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.transactions;
-
--- Ensure REPLICA IDENTITY is set correctly for both tables
+-- Step 3: Ensure REPLICA IDENTITY is set correctly for both tables (safe to run multiple times)
 ALTER TABLE public.items REPLICA IDENTITY FULL;
 ALTER TABLE public.transactions REPLICA IDENTITY FULL;
 
--- Add comments
+-- Step 4: Add comments (safe to run multiple times)
 COMMENT ON TABLE public.items IS 'Items table with real-time updates enabled';
 COMMENT ON TABLE public.transactions IS 'Transactions table with real-time updates enabled';
