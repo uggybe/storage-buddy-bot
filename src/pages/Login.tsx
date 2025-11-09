@@ -1,26 +1,21 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Login = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isTelegramAuth, setIsTelegramAuth] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   // Auto-login via Telegram
   const handleTelegramAuth = async () => {
     const tg = window.Telegram?.WebApp;
     if (!tg?.initDataUnsafe?.user) {
+      setAuthError("Это приложение работает только через Telegram Mini App");
       return false;
     }
 
@@ -29,7 +24,7 @@ const Login = () => {
     const userName = telegramUser.first_name + (telegramUser.last_name ? ` ${telegramUser.last_name}` : '');
 
     setIsLoading(true);
-    setIsTelegramAuth(true);
+    setAuthError(null);
 
     try {
       // Check whitelist first
@@ -38,8 +33,7 @@ const Login = () => {
       });
 
       if (!isWhitelisted) {
-        toast.error("У вас нет доступа к этому приложению. Обратитесь к администратору.");
-        setIsTelegramAuth(false);
+        setAuthError("У вас нет доступа к этому приложению. Обратитесь к администратору.");
         setIsLoading(false);
         return false;
       }
@@ -78,8 +72,7 @@ const Login = () => {
       return true;
     } catch (error: any) {
       console.error("Telegram auth error:", error);
-      toast.error("Ошибка автоматического входа через Telegram");
-      setIsTelegramAuth(false);
+      setAuthError("Ошибка автоматического входа через Telegram");
       return false;
     } finally {
       setIsLoading(false);
@@ -108,71 +101,6 @@ const Login = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email.trim() || !password.trim()) {
-      toast.error("Заполните все поля");
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password: password.trim(),
-      });
-
-      if (error) throw error;
-      
-      toast.success("Вход выполнен!");
-    } catch (error: any) {
-      console.error("Login error:", error);
-      toast.error(error.message || "Ошибка входа");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email.trim() || !password.trim() || !name.trim()) {
-      toast.error("Заполните все поля");
-      return;
-    }
-
-    if (password.length < 6) {
-      toast.error("Пароль должен содержать минимум 6 символов");
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const { error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password: password.trim(),
-        options: {
-          data: {
-            name: name.trim(),
-          },
-          emailRedirectTo: `${window.location.origin}/inventory`,
-        },
-      });
-
-      if (error) throw error;
-      
-      toast.success("Регистрация выполнена!");
-    } catch (error: any) {
-      console.error("Signup error:", error);
-      toast.error(error.message || "Ошибка регистрации");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
@@ -180,93 +108,35 @@ const Login = () => {
           <img src={logo} alt="ЦЭПП Services" className="h-16 mx-auto mb-4" />
           <CardTitle className="text-2xl">Складской учет</CardTitle>
           <CardDescription>
-            {isTelegramAuth ? "Вход через Telegram..." : "Войдите или зарегистрируйтесь"}
+            Telegram Mini App
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isTelegramAuth ? (
+          {isLoading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Выполняется вход через Telegram...</p>
+              <p className="text-muted-foreground">Вход через Telegram...</p>
+            </div>
+          ) : authError ? (
+            <div className="text-center py-8 space-y-4">
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600">{authError}</p>
+              </div>
+              <Button
+                onClick={() => {
+                  setAuthError(null);
+                  handleTelegramAuth();
+                }}
+                className="w-full"
+              >
+                Попробовать снова
+              </Button>
             </div>
           ) : (
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Вход</TabsTrigger>
-              <TabsTrigger value="signup">Регистрация</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="login">
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="login-email">Email</Label>
-                  <Input
-                    id="login-email"
-                    type="email"
-                    placeholder="example@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={isLoading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="login-password">Пароль</Label>
-                  <Input
-                    id="login-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={isLoading}
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Загрузка..." : "Войти"}
-                </Button>
-              </form>
-            </TabsContent>
-            
-            <TabsContent value="signup">
-              <form onSubmit={handleSignup} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-name">Имя</Label>
-                  <Input
-                    id="signup-name"
-                    type="text"
-                    placeholder="Ваше имя"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    disabled={isLoading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="example@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={isLoading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Пароль</Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={isLoading}
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Загрузка..." : "Зарегистрироваться"}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Инициализация...</p>
+            </div>
           )}
         </CardContent>
       </Card>
