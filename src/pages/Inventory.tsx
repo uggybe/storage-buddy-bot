@@ -91,7 +91,15 @@ const Inventory = () => {
           fetchItems();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to real-time changes');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Error subscribing to real-time changes');
+          toast.error('Ошибка подключения к real-time обновлениям');
+        }
+      });
 
     return () => {
       subscription.unsubscribe();
