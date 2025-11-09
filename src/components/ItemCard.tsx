@@ -199,7 +199,8 @@ export const ItemCard = ({
             <p className="text-sm text-muted-foreground mt-2">{item.notes}</p>
           )}
 
-          {item.location && (
+          {/* Show location only for multiple items OR single items that are not taken */}
+          {item.location && (item.item_type === "множественный" || !item.current_user_id) && (
             <div className="mt-2 p-2 bg-gray-50 border border-gray-200 rounded-md">
               <p className="text-sm">
                 <span className="font-medium">Местоположение:</span> {item.location}
@@ -264,7 +265,7 @@ export const ItemCard = ({
                 </Button>
               )}
               <Button
-                variant="secondary"
+                variant="default"
                 className="flex-1"
                 onClick={() => setIsAddDialogOpen(true)}
               >
