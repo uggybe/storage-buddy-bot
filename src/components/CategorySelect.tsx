@@ -1,11 +1,20 @@
 import { useState, useEffect } from "react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Check, ChevronsUpDown, Plus, Settings, Edit2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+type Category = {
+  id: string;
+  name: string;
+  critical_quantity: number;
+};
 
 export const CategorySelect = ({
   value,
@@ -17,126 +26,320 @@ export const CategorySelect = ({
   disabled?: boolean;
 }) => {
   const [open, setOpen] = useState(false);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [customValue, setCustomValue] = useState("");
-  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isManageDialogOpen, setIsManageDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCriticalQuantity, setNewCriticalQuantity] = useState("0");
 
   useEffect(() => {
-    const fetchCategories = async () => {
-      const { data } = await supabase
-        .from("items")
-        .select("category")
-        .order("category");
-
-      if (data) {
-        const unique = [...new Set(data.map(item => item.category))];
-        setCategories(unique);
-      }
-    };
-
     fetchCategories();
   }, []);
+
+  const fetchCategories = async () => {
+    const { data } = await supabase
+      .from("categories")
+      .select("*")
+      .order("name");
+
+    if (data) {
+      setCategories(data);
+    }
+  };
 
   const handleSelect = (category: string) => {
     onChange(category);
     setOpen(false);
-    setShowCustomInput(false);
   };
 
-  const handleCustomSubmit = () => {
-    if (customValue.trim()) {
-      onChange(customValue.trim());
-      setShowCustomInput(false);
-      setCustomValue("");
-      setOpen(false);
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) {
+      toast.error("Введите название категории");
+      return;
     }
+
+    const criticalQty = parseInt(newCriticalQuantity) || 0;
+
+    const { error } = await supabase
+      .from("categories")
+      .insert({
+        name: newCategoryName.trim(),
+        critical_quantity: criticalQty,
+      });
+
+    if (error) {
+      toast.error("Ошибка создания категории");
+      console.error(error);
+      return;
+    }
+
+    toast.success("Категория создана");
+    onChange(newCategoryName.trim());
+    setNewCategoryName("");
+    setNewCriticalQuantity("0");
+    setIsCreateDialogOpen(false);
+    fetchCategories();
+  };
+
+  const handleUpdateCategory = async () => {
+    if (!editingCategory) return;
+
+    const criticalQty = parseInt(newCriticalQuantity) || 0;
+
+    const { error } = await supabase
+      .from("categories")
+      .update({
+        name: newCategoryName.trim(),
+        critical_quantity: criticalQty,
+      })
+      .eq("id", editingCategory.id);
+
+    if (error) {
+      toast.error("Ошибка обновления категории");
+      console.error(error);
+      return;
+    }
+
+    toast.success("Категория обновлена");
+
+    // Update selected value if it was changed
+    if (value === editingCategory.name) {
+      onChange(newCategoryName.trim());
+    }
+
+    setEditingCategory(null);
+    setNewCategoryName("");
+    setNewCriticalQuantity("0");
+    fetchCategories();
+  };
+
+  const handleDeleteCategory = async (categoryId: string, categoryName: string) => {
+    if (!confirm(`Удалить категорию "${categoryName}"? Это не удалит предметы, но нужно будет переназначить категорию для существующих предметов.`)) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from("categories")
+      .delete()
+      .eq("id", categoryId);
+
+    if (error) {
+      toast.error("Ошибка удаления категории");
+      console.error(error);
+      return;
+    }
+
+    toast.success("Категория удалена");
+    fetchCategories();
+  };
+
+  const openCreateDialog = () => {
+    setNewCategoryName("");
+    setNewCriticalQuantity("0");
+    setIsCreateDialogOpen(true);
+    setOpen(false);
+  };
+
+  const openEditDialog = (category: Category) => {
+    setEditingCategory(category);
+    setNewCategoryName(category.name);
+    setNewCriticalQuantity(category.critical_quantity.toString());
   };
 
   return (
-    <div className="flex gap-2">
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            className="flex-1 justify-between"
-            disabled={disabled}
-          >
-            {value || "Выберите категорию"}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[300px] p-0">
-          <Command>
-            <CommandInput placeholder="Поиск категории..." />
-            <CommandList>
-              <CommandEmpty>Категория не найдена.</CommandEmpty>
-              <CommandGroup>
-                {categories.map((category) => (
-                  <CommandItem
-                    key={category}
-                    value={category}
-                    onSelect={() => handleSelect(category)}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        value === category ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    {category}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+    <>
+      <div className="flex gap-2">
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              className="flex-1 justify-between"
+              disabled={disabled}
+            >
+              {value || "Выберите категорию"}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[400px] p-0">
+            <Command>
+              <CommandInput placeholder="Поиск категории..." />
+              <CommandList>
+                <CommandEmpty>Категория не найдена.</CommandEmpty>
+                <CommandGroup>
+                  {categories.map((category) => (
+                    <CommandItem
+                      key={category.id}
+                      value={category.name}
+                      onSelect={() => handleSelect(category.name)}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          value === category.name ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      <div className="flex-1">
+                        <div>{category.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          Мин. количество: {category.critical_quantity === 0 ? "не установлено" : category.critical_quantity}
+                        </div>
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+              <div className="border-t p-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={openCreateDialog}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Новая категория
+                </Button>
+              </div>
+            </Command>
+          </PopoverContent>
+        </Popover>
 
-      {!showCustomInput ? (
         <Button
           type="button"
           variant="outline"
-          onClick={() => setShowCustomInput(true)}
+          size="icon"
+          onClick={() => setIsManageDialogOpen(true)}
           disabled={disabled}
+          title="Управление категориями"
         >
-          Новая
+          <Settings className="h-4 w-4" />
         </Button>
-      ) : (
-        <div className="flex gap-1 flex-1">
-          <Input
-            value={customValue}
-            onChange={(e) => setCustomValue(e.target.value)}
-            placeholder="Введите новую категорию"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                handleCustomSubmit();
-              }
-            }}
-            disabled={disabled}
-          />
-          <Button
-            type="button"
-            onClick={handleCustomSubmit}
-            disabled={disabled}
-          >
-            OK
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => {
-              setShowCustomInput(false);
-              setCustomValue("");
-            }}
-            disabled={disabled}
-          >
-            ✕
-          </Button>
-        </div>
-      )}
-    </div>
+      </div>
+
+      {/* Create Category Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Создать новую категорию</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-category-name">Название категории *</Label>
+              <Input
+                id="new-category-name"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="Например: Инструменты"
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-critical-quantity">Минимальное количество *</Label>
+              <Input
+                id="new-critical-quantity"
+                type="number"
+                min="0"
+                value={newCriticalQuantity}
+                onChange={(e) => setNewCriticalQuantity(e.target.value)}
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground">
+                Все множественные предметы этой категории будут иметь это минимальное количество. Укажите 0 для отключения предупреждения.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+              Отмена
+            </Button>
+            <Button onClick={handleCreateCategory}>
+              Создать
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manage Categories Dialog */}
+      <Dialog open={isManageDialogOpen} onOpenChange={setIsManageDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Управление категориями</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {categories.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Нет категорий
+              </p>
+            ) : (
+              categories.map((category) => (
+                <div
+                  key={category.id}
+                  className="flex items-center justify-between p-3 border rounded-lg"
+                >
+                  {editingCategory?.id === category.id ? (
+                    <div className="flex-1 space-y-2">
+                      <Input
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        placeholder="Название категории"
+                        className="w-full"
+                      />
+                      <Input
+                        type="number"
+                        min="0"
+                        value={newCriticalQuantity}
+                        onChange={(e) => setNewCriticalQuantity(e.target.value)}
+                        placeholder="Минимальное количество"
+                        className="w-full"
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={handleUpdateCategory}>
+                          Сохранить
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setEditingCategory(null)}
+                        >
+                          Отмена
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex-1">
+                        <div className="font-medium">{category.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          Минимальное количество: {category.critical_quantity === 0 ? "не установлено" : category.critical_quantity}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => openEditDialog(category)}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteCategory(category.id, category.name)}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };

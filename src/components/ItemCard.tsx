@@ -59,6 +59,24 @@ export const ItemCard = ({
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [purpose, setPurpose] = useState<string | null>(null);
+  const [categoryCriticalQuantity, setCategoryCriticalQuantity] = useState<number>(0);
+
+  // Fetch category critical quantity
+  useEffect(() => {
+    const fetchCategoryCriticalQuantity = async () => {
+      const { data } = await supabase
+        .from("categories")
+        .select("critical_quantity")
+        .eq("name", item.category)
+        .single();
+
+      if (data) {
+        setCategoryCriticalQuantity(data.critical_quantity);
+      }
+    };
+
+    fetchCategoryCriticalQuantity();
+  }, [item.category]);
 
   // Calculate border color based on item type and status
   const getBorderColor = () => {
@@ -73,17 +91,12 @@ export const ItemCard = ({
       }
 
       // If critical_quantity is 0, ignore yellow warning and only show red when out of stock
-      if (item.critical_quantity === 0) {
-        return "border-green-500 border-2";
-      }
-
-      if (!item.critical_quantity) {
-        // No critical quantity set, assume sufficient
+      if (categoryCriticalQuantity === 0) {
         return "border-green-500 border-2";
       }
 
       // Yellow if at or below critical quantity (but not zero)
-      if (item.quantity <= item.critical_quantity) {
+      if (item.quantity <= categoryCriticalQuantity) {
         return "border-yellow-500 border-2";
       } else {
         // Green - sufficient
@@ -92,7 +105,7 @@ export const ItemCard = ({
     }
   };
 
-  const isLowStock = item.item_type === "множественный" && item.critical_quantity && item.critical_quantity > 0 && item.quantity <= item.critical_quantity && item.quantity > 0;
+  const isLowStock = item.item_type === "множественный" && categoryCriticalQuantity > 0 && item.quantity <= categoryCriticalQuantity && item.quantity > 0;
 
   // Load current authenticated user and item's current user
   useEffect(() => {
@@ -155,50 +168,50 @@ export const ItemCard = ({
 
   return (
     <>
-      <Card className={`${getBorderColor()} cursor-pointer`} onClick={() => setIsExpanded(!isExpanded)}>
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <CardTitle className="text-lg">{item.name}</CardTitle>
+      <Card className={`${getBorderColor()} cursor-pointer min-h-[100px] transition-all`} onClick={() => setIsExpanded(!isExpanded)}>
+        <CardHeader className="py-3 px-4">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-base leading-tight">{item.name}</CardTitle>
               {item.model && (
-                <p className="text-sm text-muted-foreground mt-1">{item.model}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 truncate">{item.model}</p>
               )}
               {!isExpanded && (
-                <div className="flex items-center gap-2 mt-2">
+                <div className="flex items-center gap-2 mt-1.5">
                   {item.item_type === "множественный" && (
-                    <span className="text-sm font-medium">
-                      Количество: {item.quantity === 0 ? (
-                        <span className="text-red-600">Закончился 😢</span>
+                    <span className="text-xs font-medium">
+                      Кол-во: {item.quantity === 0 ? (
+                        <span className="text-red-600">Нет 😢</span>
                       ) : (
                         <span>{item.quantity}</span>
                       )}
                     </span>
                   )}
                   {item.item_type === "единичный" && item.current_user_id && currentUser && (
-                    <span className="text-sm font-medium text-yellow-600">
-                      {item.current_user_id === currentUserId ? "Используется Вами" : `Используется: ${currentUser.name}`}
+                    <span className="text-xs font-medium text-yellow-600 truncate">
+                      {item.current_user_id === currentUserId ? "У вас" : `У: ${currentUser.name}`}
                     </span>
                   )}
                   {item.item_type === "единичный" && !item.current_user_id && (
-                    <span className="text-sm font-medium text-green-600">
-                      Доступен
+                    <span className="text-xs font-medium text-green-600">
+                      Свободен
                     </span>
                   )}
                 </div>
               )}
               {isExpanded && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <Badge variant="secondary">{item.category}</Badge>
-                  <Badge variant="outline">{item.warehouse}</Badge>
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                  <Badge variant="secondary" className="text-xs px-2 py-0">{item.category}</Badge>
+                  <Badge variant="outline" className="text-xs px-2 py-0">{item.warehouse}</Badge>
                 </div>
               )}
             </div>
-            <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-              <Button variant="ghost" size="icon" onClick={() => setIsEditDialogOpen(true)}>
-                <Edit className="h-4 w-4" />
+            <div className="flex gap-0.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsEditDialogOpen(true)}>
+                <Edit className="h-3.5 w-3.5" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => setIsDeleteDialogOpen(true)}>
-                <Trash2 className="h-4 w-4" />
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsDeleteDialogOpen(true)}>
+                <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>
@@ -206,55 +219,55 @@ export const ItemCard = ({
 
         {isExpanded && (
           <>
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-1.5 py-2 px-4">
               {item.item_type === "множественный" && item.quantity > 0 && (
-                <div className="flex items-center gap-2">
-                  <Package className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">
+                <div className="flex items-center gap-1.5">
+                  <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-xs">
                     Количество: <span className="font-semibold">{item.quantity}</span>
                   </span>
                 </div>
               )}
 
               {isLowStock && (
-                <div className="flex items-center gap-2 text-yellow-600">
-                  <AlertTriangle className="h-4 w-4" />
-                  <span className="text-sm font-medium">Мало осталось!</span>
+                <div className="flex items-center gap-1.5 text-yellow-600">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  <span className="text-xs font-medium">Мало!</span>
                 </div>
               )}
 
               {item.notes && (
-                <p className="text-sm text-muted-foreground mt-2">{item.notes}</p>
+                <p className="text-xs text-muted-foreground">{item.notes}</p>
               )}
 
               {/* Show location only for multiple items OR single items that are not taken */}
               {item.location && (item.item_type === "множественный" || !item.current_user_id) && (
-                <div className="mt-2 p-2 bg-gray-50 border border-gray-200 rounded-md">
-                  <p className="text-sm">
-                    <span className="font-medium">Местоположение:</span> {item.location}
+                <div className="p-1.5 bg-gray-50 border border-gray-200 rounded">
+                  <p className="text-xs">
+                    <span className="font-medium">Место:</span> {item.location}
                   </p>
                 </div>
               )}
 
               {purpose && item.item_type === "единичный" && (
-                <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
-                  <p className="text-sm">
+                <div className="p-1.5 bg-blue-50 border border-blue-200 rounded">
+                  <p className="text-xs">
                     <span className="font-medium">Назначение:</span> {purpose}
                   </p>
                 </div>
               )}
 
               {item.item_type === "единичный" && currentUser && (
-                <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
-                  <p className="text-sm">
-                    <span className="font-medium">Используется:</span>{" "}
-                    {item.current_user_id === currentUserId ? "Вами" : currentUser.name}
+                <div className="p-1.5 bg-yellow-50 border border-yellow-200 rounded">
+                  <p className="text-xs">
+                    <span className="font-medium">Использует:</span>{" "}
+                    {item.current_user_id === currentUserId ? "Вы" : currentUser.name}
                   </p>
                 </div>
               )}
             </CardContent>
 
-            <CardFooter className="gap-2" onClick={(e) => e.stopPropagation()}>
+            <CardFooter className="gap-2 py-2 px-4" onClick={(e) => e.stopPropagation()}>
               {/* For single items: show buttons based on current_user_id */}
               {item.item_type === "единичный" ? (
                 <>
