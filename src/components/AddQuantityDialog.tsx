@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,15 @@ export const AddQuantityDialog = ({
   const [isLoading, setIsLoading] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [location, setLocation] = useState(item.location || "");
+  const [isEditingLocation, setIsEditingLocation] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setLocation(item.location || "");
+      setIsEditingLocation(false);
+      setQuantity(1);
+    }
+  }, [open, item.location]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +64,7 @@ export const AddQuantityDialog = ({
       onOpenChange(false);
       setQuantity(1);
       setLocation("");
+      setIsEditingLocation(false);
     } catch (error) {
       console.error("Error adding quantity:", error);
       toast.error("Ошибка при добавлении количества");
@@ -89,14 +99,36 @@ export const AddQuantityDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="add-location">Местоположение</Label>
-            <Input
-              id="add-location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              disabled={isLoading}
-              placeholder="Например: Полка 3, ряд 2"
-            />
+            <div className="flex items-center justify-between">
+              <Label>Местоположение</Label>
+              {!isEditingLocation && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditingLocation(true)}
+                  disabled={isLoading}
+                >
+                  Изменить
+                </Button>
+              )}
+            </div>
+            {isEditingLocation ? (
+              <Input
+                id="add-location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                disabled={isLoading}
+                placeholder="Например: Полка 3, ряд 2"
+                autoFocus
+              />
+            ) : (
+              <div className="p-2 bg-gray-50 border border-gray-200 rounded-md">
+                <p className="text-sm">
+                  {location || "Не указано"}
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-2">
