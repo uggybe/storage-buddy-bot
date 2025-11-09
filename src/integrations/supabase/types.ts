@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      categories: {
+        Row: {
+          id: string
+          name: string
+          critical_quantity: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          critical_quantity?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          critical_quantity?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
       app_users: {
         Row: {
           created_at: string
@@ -80,6 +101,30 @@ export type Database = {
           quantity?: number
           updated_at?: string
           warehouse?: Database["public"]["Enums"]["warehouse_type"]
+        }
+        Relationships: []
+      }
+      whitelist: {
+        Row: {
+          id: string
+          telegram_id: number
+          name: string
+          created_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          telegram_id: number
+          name: string
+          created_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          telegram_id?: number
+          name?: string
+          created_at?: string
+          created_by?: string | null
         }
         Relationships: []
       }

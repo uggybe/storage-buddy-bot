@@ -28,14 +28,26 @@ const Login = () => {
     const telegramId = telegramUser.id;
     const userName = telegramUser.first_name + (telegramUser.last_name ? ` ${telegramUser.last_name}` : '');
 
-    // Create unique email based on Telegram ID
-    const telegramEmail = `telegram_${telegramId}@telegram.app`;
-    const telegramPassword = `tg_secure_${telegramId}_${process.env.REACT_APP_TELEGRAM_SECRET || 'secret'}`;
-
     setIsLoading(true);
     setIsTelegramAuth(true);
 
     try {
+      // Check whitelist first
+      const { data: isWhitelisted } = await supabase.rpc('is_telegram_user_whitelisted', {
+        user_telegram_id: telegramId
+      });
+
+      if (!isWhitelisted) {
+        toast.error("У вас нет доступа к этому приложению. Обратитесь к администратору.");
+        setIsTelegramAuth(false);
+        setIsLoading(false);
+        return false;
+      }
+
+      // Create unique email based on Telegram ID
+      const telegramEmail = `telegram_${telegramId}@telegram.app`;
+      const telegramPassword = `tg_secure_${telegramId}_${process.env.REACT_APP_TELEGRAM_SECRET || 'secret'}`;
+
       // Try to sign in first
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: telegramEmail,
@@ -67,6 +79,7 @@ const Login = () => {
     } catch (error: any) {
       console.error("Telegram auth error:", error);
       toast.error("Ошибка автоматического входа через Telegram");
+      setIsTelegramAuth(false);
       return false;
     } finally {
       setIsLoading(false);

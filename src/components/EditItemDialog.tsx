@@ -65,14 +65,9 @@ export const EditItemDialog = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.category || !formData.warehouse) {
+    // All fields except notes are required
+    if (!formData.name || !formData.model || !formData.category || !formData.warehouse || !formData.location) {
       toast.error("Заполните все обязательные поля");
-      return;
-    }
-
-    // Для множественных предметов требуем минимальное количество
-    if (formData.item_type === "множественный" && !formData.critical_quantity) {
-      toast.error("Для множественных предметов обязательно укажите минимальное количество");
       return;
     }
 
@@ -83,13 +78,12 @@ export const EditItemDialog = ({
         .from("items")
         .update({
           name: formData.name,
-          model: formData.model || null,
+          model: formData.model,
           category: formData.category,
           warehouse: formData.warehouse as "Мастерская" | "Холодный" | "Теплый",
           item_type: formData.item_type,
           quantity: formData.item_type === "единичный" ? 1 : formData.quantity,
-          critical_quantity: formData.item_type === "единичный" ? null : parseInt(formData.critical_quantity),
-          location: formData.location || null,
+          location: formData.location,
           notes: formData.notes || null,
         })
         .eq("id", item.id);
@@ -126,7 +120,7 @@ export const EditItemDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-model">Модель</Label>
+            <Label htmlFor="edit-model">Модель *</Label>
             <Input
               id="edit-model"
               value={formData.model}
@@ -182,41 +176,25 @@ export const EditItemDialog = ({
           </div>
 
           {formData.item_type === "множественный" && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="edit-quantity">Количество</Label>
-                <Input
-                  id="edit-quantity"
-                  type="number"
-                  min="0"
-                  value={formData.quantity}
-                  onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
-                  disabled={isLoading}
-                  className="w-full"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="edit-critical-quantity">Минимальное количество *</Label>
-                <Input
-                  id="edit-critical-quantity"
-                  type="number"
-                  min="0"
-                  value={formData.critical_quantity}
-                  onChange={(e) => setFormData({ ...formData, critical_quantity: e.target.value })}
-                  disabled={isLoading}
-                  className="w-full"
-                  placeholder="Укажите минимальное количество"
-                />
-                <p className="text-xs text-muted-foreground">
-                  При достижении этого количества рамка станет желтой. Укажите 0 для отключения предупреждения.
-                </p>
-              </div>
-            </>
+            <div className="space-y-2">
+              <Label htmlFor="edit-quantity">Количество</Label>
+              <Input
+                id="edit-quantity"
+                type="number"
+                min="0"
+                value={formData.quantity}
+                onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
+                disabled={isLoading}
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground">
+                Минимальное количество настраивается в категории
+              </p>
+            </div>
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="edit-location">Местоположение</Label>
+            <Label htmlFor="edit-location">Местоположение *</Label>
             <Input
               id="edit-location"
               value={formData.location}
