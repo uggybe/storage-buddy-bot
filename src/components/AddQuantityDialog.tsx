@@ -10,6 +10,7 @@ type Item = {
   id: string;
   name: string;
   quantity: number;
+  location: string | null;
 };
 
 export const AddQuantityDialog = ({
@@ -25,6 +26,7 @@ export const AddQuantityDialog = ({
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [location, setLocation] = useState(item.location || "");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,11 +39,12 @@ export const AddQuantityDialog = ({
     setIsLoading(true);
 
     try {
-      // Update item quantity
+      // Update item quantity and location
       const { error: updateError } = await supabase
         .from("items")
         .update({
-          quantity: item.quantity + quantity
+          quantity: item.quantity + quantity,
+          location: location.trim() || null
         })
         .eq("id", item.id);
 
@@ -51,6 +54,7 @@ export const AddQuantityDialog = ({
       onSuccess();
       onOpenChange(false);
       setQuantity(1);
+      setLocation("");
     } catch (error) {
       console.error("Error adding quantity:", error);
       toast.error("Ошибка при добавлении количества");
@@ -82,6 +86,17 @@ export const AddQuantityDialog = ({
             <p className="text-xs text-muted-foreground">
               После добавления: {item.quantity + quantity}
             </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="add-location">Местоположение</Label>
+            <Input
+              id="add-location"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              disabled={isLoading}
+              placeholder="Например: Полка 3, ряд 2"
+            />
           </div>
 
           <div className="flex gap-2">

@@ -56,7 +56,6 @@ export const ItemCard = ({
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [hasUserTakenItem, setHasUserTakenItem] = useState(false);
   const [purpose, setPurpose] = useState<string | null>(null);
 
   // Calculate border color based on item type and status
@@ -106,26 +105,6 @@ export const ItemCard = ({
 
           if (appUser) {
             setCurrentUserId(appUser.id);
-
-            // For multiple items, check if user has taken the item
-            if (item.item_type === "множественный") {
-              const { data: transactions } = await supabase
-                .from("transactions")
-                .select("action, quantity")
-                .eq("item_id", item.id)
-                .eq("user_id", appUser.id);
-
-              if (transactions) {
-                const taken = transactions
-                  .filter(t => t.action === "взято")
-                  .reduce((sum, t) => sum + t.quantity, 0);
-                const returned = transactions
-                  .filter(t => t.action === "возвращено")
-                  .reduce((sum, t) => sum + t.quantity, 0);
-
-                setHasUserTakenItem(taken > returned);
-              }
-            }
           }
         }
 
@@ -220,6 +199,14 @@ export const ItemCard = ({
             <p className="text-sm text-muted-foreground mt-2">{item.notes}</p>
           )}
 
+          {item.location && (
+            <div className="mt-2 p-2 bg-gray-50 border border-gray-200 rounded-md">
+              <p className="text-sm">
+                <span className="font-medium">Местоположение:</span> {item.location}
+              </p>
+            </div>
+          )}
+
           {purpose && item.item_type === "единичный" && (
             <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
               <p className="text-sm">
@@ -265,7 +252,7 @@ export const ItemCard = ({
               {/* If taken by someone else, hide both buttons */}
             </>
           ) : (
-            /* For multiple items: show Take, Return (if user has taken), and Add buttons */
+            /* For multiple items: show Take and Add buttons (no Return) */
             <>
               {item.quantity > 0 && (
                 <Button
@@ -274,15 +261,6 @@ export const ItemCard = ({
                   onClick={handleTakeClick}
                 >
                   Взять
-                </Button>
-              )}
-              {hasUserTakenItem && (
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setIsReturnDialogOpen(true)}
-                >
-                  Вернуть
                 </Button>
               )}
               <Button
