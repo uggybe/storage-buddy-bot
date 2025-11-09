@@ -82,16 +82,28 @@ const Login = () => {
       const telegramPassword = `tg_secure_${telegramId}_${process.env.REACT_APP_TELEGRAM_SECRET || 'secret'}`;
 
       console.log("Attempting sign in...");
-      // Try to sign in first
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+
+      // Try to sign in first with timeout
+      const signInPromise = supabase.auth.signInWithPassword({
         email: telegramEmail,
         password: telegramPassword,
       });
 
+      const signInTimeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Sign in timeout")), 10000)
+      );
+
+      const { error: signInError } = await Promise.race([
+        signInPromise,
+        signInTimeout
+      ]) as any;
+
       if (signInError) {
         console.log("Sign in failed, trying sign up:", signInError.message);
-        // If sign in fails, try to sign up
-        const { error: signUpError } = await supabase.auth.signUp({
+        setDebugInfo("Создание нового аккаунта...");
+
+        // If sign in fails, try to sign up with timeout
+        const signUpPromise = supabase.auth.signUp({
           email: telegramEmail,
           password: telegramPassword,
           options: {
@@ -100,8 +112,18 @@ const Login = () => {
               telegram_id: telegramId,
               telegram_username: telegramUser.username || '',
             },
+            emailRedirectTo: undefined, // Disable email confirmation
           },
         });
+
+        const signUpTimeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Sign up timeout")), 10000)
+        );
+
+        const { error: signUpError } = await Promise.race([
+          signUpPromise,
+          signUpTimeout
+        ]) as any;
 
         if (signUpError) {
           console.error("Sign up error:", signUpError);
@@ -109,10 +131,20 @@ const Login = () => {
         }
 
         console.log("Sign up successful");
-        toast.success(`Добро пожаловать, ${userName}!`);
       } else {
         console.log("Sign in successful");
+      }
+
+      // Check session after auth
+      setDebugInfo("Проверка входа...");
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session) {
+        console.log("Session confirmed, navigating to inventory");
         toast.success(`С возвращением, ${userName}!`);
+        navigate("/inventory");
+      } else {
+        throw new Error("Сессия не создана после авторизации");
       }
 
       return true;
@@ -145,11 +177,16 @@ const Login = () => {
 
         console.log("No session, attempting Telegram auth");
         // Try Telegram auto-login if not logged in
-        await handleTelegramAuth();
+        const success = await handleTelegramAuth();
+
+        // If auth was successful, navigation already happened in handleTelegramAuth
+        if (!success) {
+          console.log("Telegram auth failed");
+        }
       } catch (error) {
         console.error("Init auth error:", error);
         if (mounted) {
-          setAuthError("Ошибка инициализации");
+          setAuthError(`Ошибка инициализации: ${error}`);
           setIsLoading(false);
         }
       }
@@ -157,17 +194,8 @@ const Login = () => {
 
     initAuth();
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state changed:", event, session);
-      if (session && mounted) {
-        navigate("/inventory");
-      }
-    });
-
     return () => {
       mounted = false;
-      subscription.unsubscribe();
     };
   }, [navigate]);
 
