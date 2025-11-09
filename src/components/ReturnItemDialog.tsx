@@ -14,6 +14,7 @@ type Item = {
   warehouse: string;
   item_type: "единичный" | "множественный";
   quantity: number;
+  location: string | null;
 };
 
 export const ReturnItemDialog = ({
@@ -32,13 +33,13 @@ export const ReturnItemDialog = ({
   const [isLoading, setIsLoading] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [warehouse, setWarehouse] = useState(item.warehouse);
-  const [locationDetails, setLocationDetails] = useState("");
+  const [locationDetails, setLocationDetails] = useState(item.location || "");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!locationDetails.trim()) {
-      toast.error("Укажите где именно на складе размещен предмет");
+      toast.error("Укажите местоположение предмета на складе");
       return;
     }
 
@@ -74,9 +75,10 @@ export const ReturnItemDialog = ({
 
       if (transactionError) throw transactionError;
 
-      // Update item quantity and warehouse if changed
+      // Update item quantity, warehouse and location
       const updateData: any = {
-        warehouse: warehouse as "Мастерская" | "Холодный" | "Теплый"
+        warehouse: warehouse as "Мастерская" | "Холодный" | "Теплый",
+        location: locationDetails.trim()
       };
 
       // Only update quantity for multiple items
@@ -145,7 +147,7 @@ export const ReturnItemDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="location">Где на складе размещено *</Label>
+            <Label htmlFor="location">Местоположение *</Label>
             <Textarea
               id="location"
               value={locationDetails}

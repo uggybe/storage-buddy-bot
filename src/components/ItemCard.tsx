@@ -7,6 +7,7 @@ import { TakeItemDialog } from "./TakeItemDialog";
 import { ReturnItemDialog } from "./ReturnItemDialog";
 import { EditItemDialog } from "./EditItemDialog";
 import { DeleteItemDialog } from "./DeleteItemDialog";
+import { AddQuantityDialog } from "./AddQuantityDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -52,8 +53,10 @@ export const ItemCard = ({
   const [isReturnDialogOpen, setIsReturnDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [hasUserTakenItem, setHasUserTakenItem] = useState(false);
 
   // Calculate border color based on item type and status
   const getBorderColor = () => {
@@ -97,6 +100,26 @@ export const ItemCard = ({
 
           if (appUser) {
             setCurrentUserId(appUser.id);
+
+            // For multiple items, check if user has taken the item
+            if (item.item_type === "множественный") {
+              const { data: transactions } = await supabase
+                .from("transactions")
+                .select("action, quantity")
+                .eq("item_id", item.id)
+                .eq("user_id", appUser.id);
+
+              if (transactions) {
+                const taken = transactions
+                  .filter(t => t.action === "взято")
+                  .reduce((sum, t) => sum + t.quantity, 0);
+                const returned = transactions
+                  .filter(t => t.action === "возвращено")
+                  .reduce((sum, t) => sum + t.quantity, 0);
+
+                setHasUserTakenItem(taken > returned);
+              }
+            }
           }
         }
 
@@ -119,7 +142,7 @@ export const ItemCard = ({
     };
 
     fetchUsers();
-  }, [item.current_user_id, item.item_type]);
+  }, [item.current_user_id, item.item_type, item.id]);
 
   const handleTakeClick = () => {
     setIsTakeDialogOpen(true);
@@ -206,7 +229,7 @@ export const ItemCard = ({
               {/* If taken by someone else, hide both buttons */}
             </>
           ) : (
-            /* For multiple items: always show both buttons */
+            /* For multiple items: show Take, Return (if user has taken), and Add buttons */
             <>
               <Button
                 variant="default"
@@ -216,12 +239,21 @@ export const ItemCard = ({
               >
                 Взять
               </Button>
+              {hasUserTakenItem && (
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setIsReturnDialogOpen(true)}
+                >
+                  Вернуть
+                </Button>
+              )}
               <Button
-                variant="outline"
+                variant="secondary"
                 className="flex-1"
-                onClick={() => setIsReturnDialogOpen(true)}
+                onClick={() => setIsAddDialogOpen(true)}
               >
-                Вернуть
+                Добавить
               </Button>
             </>
           )}
@@ -256,6 +288,13 @@ export const ItemCard = ({
         onOpenChange={setIsDeleteDialogOpen}
         itemId={item.id}
         itemName={item.name}
+        onSuccess={onUpdate}
+      />
+
+      <AddQuantityDialog
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        item={item}
         onSuccess={onUpdate}
       />
     </>
