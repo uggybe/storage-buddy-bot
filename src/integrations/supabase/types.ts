@@ -40,7 +40,9 @@ export type Database = {
           category: string
           created_at: string
           critical_quantity: number | null
+          current_user_id: string | null
           id: string
+          item_type: Database["public"]["Enums"]["item_type"]
           name: string
           notes: string | null
           quantity: number
@@ -51,7 +53,9 @@ export type Database = {
           category: string
           created_at?: string
           critical_quantity?: number | null
+          current_user_id?: string | null
           id?: string
+          item_type?: Database["public"]["Enums"]["item_type"]
           name: string
           notes?: string | null
           quantity?: number
@@ -62,7 +66,9 @@ export type Database = {
           category?: string
           created_at?: string
           critical_quantity?: number | null
+          current_user_id?: string | null
           id?: string
+          item_type?: Database["public"]["Enums"]["item_type"]
           name?: string
           notes?: string | null
           quantity?: number
@@ -136,6 +142,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      item_type: "единичный" | "множественный"
       warehouse_type: "Мастерская" | "Холодный" | "Теплый"
     }
     CompositeTypes: {
@@ -264,6 +271,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      item_type: ["единичный", "множественный"],
       warehouse_type: ["Мастерская", "Холодный", "Теплый"],
     },
   },

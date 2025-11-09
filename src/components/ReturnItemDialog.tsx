@@ -12,6 +12,7 @@ type Item = {
   id: string;
   name: string;
   warehouse: string;
+  item_type: "единичный" | "множественный";
   quantity: number;
 };
 
@@ -41,6 +42,8 @@ export const ReturnItemDialog = ({
       return;
     }
 
+    const actualQuantity = item.item_type === "единичный" ? 1 : quantity;
+
     setIsLoading(true);
 
     try {
@@ -64,7 +67,7 @@ export const ReturnItemDialog = ({
           item_id: item.id,
           user_id: appUser.id,
           action: "возвращено",
-          quantity,
+          quantity: actualQuantity,
           warehouse_returned: warehouse as "Мастерская" | "Холодный" | "Теплый",
           location_details: locationDetails.trim(),
         });
@@ -72,12 +75,18 @@ export const ReturnItemDialog = ({
       if (transactionError) throw transactionError;
 
       // Update item quantity and warehouse if changed
+      const updateData: any = {
+        warehouse: warehouse as "Мастерская" | "Холодный" | "Теплый"
+      };
+
+      // Only update quantity for multiple items
+      if (item.item_type === "множественный") {
+        updateData.quantity = item.quantity + actualQuantity;
+      }
+
       const { error: updateError } = await supabase
         .from("items")
-        .update({ 
-          quantity: item.quantity + quantity,
-          warehouse: warehouse as "Мастерская" | "Холодный" | "Теплый"
-        })
+        .update(updateData)
         .eq("id", item.id);
 
       if (updateError) throw updateError;
@@ -103,17 +112,19 @@ export const ReturnItemDialog = ({
           <DialogTitle>Вернуть: {item.name}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="return-quantity">Количество</Label>
-            <Input
-              id="return-quantity"
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-              disabled={isLoading}
-            />
-          </div>
+          {item.item_type === "множественный" && (
+            <div className="space-y-2">
+              <Label htmlFor="return-quantity">Количество</Label>
+              <Input
+                id="return-quantity"
+                type="number"
+                min="1"
+                value={quantity}
+                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                disabled={isLoading}
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="return-warehouse">Склад *</Label>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,9 +15,15 @@ type Item = {
   name: string;
   category: string;
   warehouse: string;
+  item_type: "единичный" | "множественный";
   quantity: number;
   critical_quantity: number | null;
+  current_user_id: string | null;
   notes: string | null;
+};
+
+type AppUser = {
+  name: string;
 };
 
 type Transaction = {
@@ -32,12 +38,12 @@ type Transaction = {
   };
 };
 
-export const ItemCard = ({ 
-  item, 
+export const ItemCard = ({
+  item,
   onUpdate,
-  userName 
-}: { 
-  item: Item; 
+  userName
+}: {
+  item: Item;
   onUpdate: () => void;
   userName: string;
 }) => {
@@ -45,39 +51,64 @@ export const ItemCard = ({
   const [isReturnDialogOpen, setIsReturnDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<Transaction | null>(null);
+  const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
 
-  const isLowStock = item.critical_quantity && item.quantity <= item.critical_quantity;
+  // Calculate border color based on item type and status
+  const getBorderColor = () => {
+    if (item.item_type === "единичный") {
+      // Green if not taken, Yellow if taken
+      return item.current_user_id ? "border-yellow-500 border-2" : "border-green-500 border-2";
+    } else {
+      // Multiple item logic
+      if (!item.critical_quantity) {
+        // No critical quantity set, assume sufficient
+        return "border-green-500 border-2";
+      }
 
-  const fetchCurrentUser = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("transactions")
-        .select(`
-          *,
-          app_users (name)
-        `)
-        .eq("item_id", item.id)
-        .eq("action", "взято")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) throw error;
-      setCurrentUser(data);
-    } catch (error) {
-      console.error("Error fetching current user:", error);
+      if (item.quantity <= item.critical_quantity) {
+        // Red - critically low
+        return "border-red-500 border-2";
+      } else if (item.quantity < item.critical_quantity * 1.5) {
+        // Yellow - less than 50% above critical
+        return "border-yellow-500 border-2";
+      } else {
+        // Green - sufficient
+        return "border-green-500 border-2";
+      }
     }
   };
 
-  const handleTakeClick = () => {
+  const isLowStock = item.item_type === "множественный" && item.critical_quantity && item.quantity <= item.critical_quantity;
+
+  // Load current user on mount if item is taken
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      if (item.item_type === "единичный" && item.current_user_id) {
+        try {
+          const { data, error } = await supabase
+            .from("app_users")
+            .select("name")
+            .eq("id", item.current_user_id)
+            .single();
+
+          if (error) throw error;
+          setCurrentUser(data);
+        } catch (error) {
+          console.error("Error fetching current user:", error);
+        }
+      }
+    };
+
     fetchCurrentUser();
+  }, [item.current_user_id, item.item_type]);
+
+  const handleTakeClick = () => {
     setIsTakeDialogOpen(true);
   };
 
   return (
     <>
-      <Card className={isLowStock ? "border-accent" : ""}>
+      <Card className={getBorderColor()}>
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex-1">
@@ -99,17 +130,19 @@ export const ItemCard = ({
         </CardHeader>
 
         <CardContent className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Package className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm">
-              Количество: <span className="font-semibold">{item.quantity}</span>
-            </span>
-          </div>
+          {item.item_type === "множественный" && (
+            <div className="flex items-center gap-2">
+              <Package className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">
+                Количество: <span className="font-semibold">{item.quantity}</span>
+              </span>
+            </div>
+          )}
 
           {isLowStock && (
-            <div className="flex items-center gap-2 text-accent">
+            <div className="flex items-center gap-2 text-red-600">
               <AlertTriangle className="h-4 w-4" />
-              <span className="text-sm font-medium">Заканчивается!</span>
+              <span className="text-sm font-medium">Критически мало!</span>
             </div>
           )}
 
@@ -117,31 +150,26 @@ export const ItemCard = ({
             <p className="text-sm text-muted-foreground mt-2">{item.notes}</p>
           )}
 
-          {currentUser && (
-            <div className="mt-3 p-2 bg-muted rounded-md">
+          {item.item_type === "единичный" && currentUser && (
+            <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
               <p className="text-sm">
-                <span className="font-medium">Взято:</span> {currentUser.app_users.name}
+                <span className="font-medium">Используется:</span> {currentUser.name}
               </p>
-              {currentUser.purpose && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  {currentUser.purpose}
-                </p>
-              )}
             </div>
           )}
         </CardContent>
 
         <CardFooter className="gap-2">
-          <Button 
-            variant="default" 
+          <Button
+            variant="default"
             className="flex-1"
             onClick={handleTakeClick}
-            disabled={item.quantity === 0}
+            disabled={item.item_type === "множественный" && item.quantity === 0}
           >
             Взять
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="flex-1"
             onClick={() => setIsReturnDialogOpen(true)}
           >
