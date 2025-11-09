@@ -14,6 +14,7 @@ import { toast } from "sonner";
 type Item = {
   id: string;
   name: string;
+  model: string | null;
   category: string;
   warehouse: string;
   item_type: "единичный" | "множественный";
@@ -49,6 +50,7 @@ export const ItemCard = ({
   onUpdate: () => void;
   userName: string;
 }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isTakeDialogOpen, setIsTakeDialogOpen] = useState(false);
   const [isReturnDialogOpen, setIsReturnDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -70,16 +72,18 @@ export const ItemCard = ({
         return "border-red-500 border-2";
       }
 
+      // If critical_quantity is 0, ignore yellow warning and only show red when out of stock
+      if (item.critical_quantity === 0) {
+        return "border-green-500 border-2";
+      }
+
       if (!item.critical_quantity) {
         // No critical quantity set, assume sufficient
         return "border-green-500 border-2";
       }
 
+      // Yellow if at or below critical quantity (but not zero)
       if (item.quantity <= item.critical_quantity) {
-        // Red - critically low
-        return "border-red-500 border-2";
-      } else if (item.quantity < item.critical_quantity * 1.5) {
-        // Yellow - less than 50% above critical
         return "border-yellow-500 border-2";
       } else {
         // Green - sufficient
@@ -88,7 +92,7 @@ export const ItemCard = ({
     }
   };
 
-  const isLowStock = item.item_type === "множественный" && item.critical_quantity && item.quantity <= item.critical_quantity;
+  const isLowStock = item.item_type === "множественный" && item.critical_quantity && item.critical_quantity > 0 && item.quantity <= item.critical_quantity && item.quantity > 0;
 
   // Load current authenticated user and item's current user
   useEffect(() => {
@@ -151,17 +155,45 @@ export const ItemCard = ({
 
   return (
     <>
-      <Card className={getBorderColor()}>
+      <Card className={`${getBorderColor()} cursor-pointer`} onClick={() => setIsExpanded(!isExpanded)}>
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <CardTitle className="text-lg">{item.name}</CardTitle>
-              <div className="flex flex-wrap gap-2 mt-2">
-                <Badge variant="secondary">{item.category}</Badge>
-                <Badge variant="outline">{item.warehouse}</Badge>
-              </div>
+              {item.model && (
+                <p className="text-sm text-muted-foreground mt-1">{item.model}</p>
+              )}
+              {!isExpanded && (
+                <div className="flex items-center gap-2 mt-2">
+                  {item.item_type === "множественный" && (
+                    <span className="text-sm font-medium">
+                      Количество: {item.quantity === 0 ? (
+                        <span className="text-red-600">Закончился 😢</span>
+                      ) : (
+                        <span>{item.quantity}</span>
+                      )}
+                    </span>
+                  )}
+                  {item.item_type === "единичный" && item.current_user_id && currentUser && (
+                    <span className="text-sm font-medium text-yellow-600">
+                      {item.current_user_id === currentUserId ? "Используется Вами" : `Используется: ${currentUser.name}`}
+                    </span>
+                  )}
+                  {item.item_type === "единичный" && !item.current_user_id && (
+                    <span className="text-sm font-medium text-green-600">
+                      Доступен
+                    </span>
+                  )}
+                </div>
+              )}
+              {isExpanded && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <Badge variant="secondary">{item.category}</Badge>
+                  <Badge variant="outline">{item.warehouse}</Badge>
+                </div>
+              )}
             </div>
-            <div className="flex gap-1">
+            <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
               <Button variant="ghost" size="icon" onClick={() => setIsEditDialogOpen(true)}>
                 <Edit className="h-4 w-4" />
               </Button>
@@ -172,108 +204,106 @@ export const ItemCard = ({
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-2">
-          {item.item_type === "множественный" && item.quantity === 0 && (
-            <div className="flex items-center gap-2 text-red-600">
-              <span className="text-lg font-bold">Закончился 😢</span>
-            </div>
-          )}
-
-          {item.item_type === "множественный" && item.quantity > 0 && (
-            <div className="flex items-center gap-2">
-              <Package className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">
-                Количество: <span className="font-semibold">{item.quantity}</span>
-              </span>
-            </div>
-          )}
-
-          {isLowStock && item.quantity > 0 && (
-            <div className="flex items-center gap-2 text-red-600">
-              <AlertTriangle className="h-4 w-4" />
-              <span className="text-sm font-medium">Критически мало!</span>
-            </div>
-          )}
-
-          {item.notes && (
-            <p className="text-sm text-muted-foreground mt-2">{item.notes}</p>
-          )}
-
-          {/* Show location only for multiple items OR single items that are not taken */}
-          {item.location && (item.item_type === "множественный" || !item.current_user_id) && (
-            <div className="mt-2 p-2 bg-gray-50 border border-gray-200 rounded-md">
-              <p className="text-sm">
-                <span className="font-medium">Местоположение:</span> {item.location}
-              </p>
-            </div>
-          )}
-
-          {purpose && item.item_type === "единичный" && (
-            <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
-              <p className="text-sm">
-                <span className="font-medium">Назначение:</span> {purpose}
-              </p>
-            </div>
-          )}
-
-          {item.item_type === "единичный" && currentUser && (
-            <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
-              <p className="text-sm">
-                <span className="font-medium">Используется:</span>{" "}
-                {item.current_user_id === currentUserId ? "Вами" : currentUser.name}
-              </p>
-            </div>
-          )}
-        </CardContent>
-
-        <CardFooter className="gap-2">
-          {/* For single items: show buttons based on current_user_id */}
-          {item.item_type === "единичный" ? (
-            <>
-              {/* If not taken, show Take button */}
-              {!item.current_user_id && (
-                <Button
-                  variant="default"
-                  className="flex-1"
-                  onClick={handleTakeClick}
-                >
-                  Взять
-                </Button>
+        {isExpanded && (
+          <>
+            <CardContent className="space-y-2">
+              {item.item_type === "множественный" && item.quantity > 0 && (
+                <div className="flex items-center gap-2">
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">
+                    Количество: <span className="font-semibold">{item.quantity}</span>
+                  </span>
+                </div>
               )}
-              {/* If taken by current user, show Return button */}
-              {item.current_user_id === currentUserId && (
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setIsReturnDialogOpen(true)}
-                >
-                  Вернуть
-                </Button>
+
+              {isLowStock && (
+                <div className="flex items-center gap-2 text-yellow-600">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span className="text-sm font-medium">Мало осталось!</span>
+                </div>
               )}
-              {/* If taken by someone else, hide both buttons */}
-            </>
-          ) : (
-            /* For multiple items: show Take and Add buttons (no Return) */
-            <>
-              {item.quantity > 0 && (
-                <Button
-                  variant="default"
-                  className="flex-1"
-                  onClick={handleTakeClick}
-                >
-                  Взять
-                </Button>
+
+              {item.notes && (
+                <p className="text-sm text-muted-foreground mt-2">{item.notes}</p>
               )}
-              <Button
-                variant="default"
-                className="flex-1"
-                onClick={() => setIsAddDialogOpen(true)}
-              >
-                Добавить
-              </Button>
-            </>
-          )}
-        </CardFooter>
+
+              {/* Show location only for multiple items OR single items that are not taken */}
+              {item.location && (item.item_type === "множественный" || !item.current_user_id) && (
+                <div className="mt-2 p-2 bg-gray-50 border border-gray-200 rounded-md">
+                  <p className="text-sm">
+                    <span className="font-medium">Местоположение:</span> {item.location}
+                  </p>
+                </div>
+              )}
+
+              {purpose && item.item_type === "единичный" && (
+                <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                  <p className="text-sm">
+                    <span className="font-medium">Назначение:</span> {purpose}
+                  </p>
+                </div>
+              )}
+
+              {item.item_type === "единичный" && currentUser && (
+                <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <p className="text-sm">
+                    <span className="font-medium">Используется:</span>{" "}
+                    {item.current_user_id === currentUserId ? "Вами" : currentUser.name}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+
+            <CardFooter className="gap-2" onClick={(e) => e.stopPropagation()}>
+              {/* For single items: show buttons based on current_user_id */}
+              {item.item_type === "единичный" ? (
+                <>
+                  {/* If not taken, show Take button */}
+                  {!item.current_user_id && (
+                    <Button
+                      variant="default"
+                      className="flex-1"
+                      onClick={handleTakeClick}
+                    >
+                      Взять
+                    </Button>
+                  )}
+                  {/* If taken by current user, show Return button */}
+                  {item.current_user_id === currentUserId && (
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setIsReturnDialogOpen(true)}
+                    >
+                      Вернуть
+                    </Button>
+                  )}
+                  {/* If taken by someone else, hide both buttons */}
+                </>
+              ) : (
+                /* For multiple items: show Take and Add buttons (no Return) */
+                <>
+                  {item.quantity > 0 && (
+                    <Button
+                      variant="default"
+                      className="flex-1"
+                      onClick={handleTakeClick}
+                    >
+                      Взять
+                    </Button>
+                  )}
+                  <Button
+                    variant="default"
+                    className="flex-1"
+                    onClick={() => setIsAddDialogOpen(true)}
+                  >
+                    Добавить
+                  </Button>
+                </>
+              )}
+            </CardFooter>
+          </>
+        )}
       </Card>
 
       <TakeItemDialog
