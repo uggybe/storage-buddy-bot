@@ -38,7 +38,7 @@ const Inventory = () => {
         navigate("/");
         return;
       }
-      
+
       // Fetch user's name from app_users table
       supabase
         .from("app_users")
@@ -53,7 +53,7 @@ const Inventory = () => {
           }
           setUserName(data?.name || "");
         });
-      
+
       fetchItems();
     });
 
@@ -64,7 +64,39 @@ const Inventory = () => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Subscribe to real-time changes on items and transactions tables
+    const itemsChannel = supabase
+      .channel('database-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'items'
+        },
+        (payload) => {
+          console.log('Items change detected:', payload);
+          fetchItems();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'transactions'
+        },
+        (payload) => {
+          console.log('Transaction change detected:', payload);
+          fetchItems();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+      supabase.removeChannel(itemsChannel);
+    };
   }, [navigate]);
 
   const fetchItems = async () => {
