@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { CategorySelect } from "./CategorySelect";
 
 type Item = {
   id: string;
@@ -114,11 +115,10 @@ export const EditItemDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-category">Категория *</Label>
-            <Input
-              id="edit-category"
+            <Label>Категория *</Label>
+            <CategorySelect
               value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              onChange={(value) => setFormData({ ...formData, category: value })}
               disabled={isLoading}
             />
           </div>
