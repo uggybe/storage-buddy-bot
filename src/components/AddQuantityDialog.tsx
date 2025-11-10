@@ -88,7 +88,10 @@ export const AddQuantityDialog = ({
 
       if (updateError) throw updateError;
 
-      // Log the action
+      // Log the action with old/new quantity details
+      const oldQuantity = item.quantity;
+      const newQuantity = item.quantity + numQuantity;
+
       await supabase.from("transactions").insert({
         item_id: item.id,
         user_id: appUser.id,
@@ -97,8 +100,10 @@ export const AddQuantityDialog = ({
         item_name: item.name,
         category_name: itemData?.category,
         details: {
-          new_total: item.quantity + numQuantity,
+          old_quantity: oldQuantity,
+          new_quantity: newQuantity,
           location: location.trim() || null,
+          warehouse: itemData?.warehouse,
         },
       });
 

@@ -69,7 +69,10 @@ export const ReturnItemDialog = ({
 
       if (!appUser) throw new Error("User profile not found");
 
-      // Create return transaction
+      // Create return transaction with old/new quantity details
+      const oldQuantity = item.quantity;
+      const newQuantity = item.item_type === "множественный" ? item.quantity + actualQuantity : item.quantity;
+
       const { error: transactionError } = await supabase
         .from("transactions")
         .insert({
@@ -79,6 +82,14 @@ export const ReturnItemDialog = ({
           quantity: actualQuantity,
           warehouse_returned: warehouse as "Мастерская" | "Холодный" | "Теплый",
           location_details: locationDetails.trim(),
+          item_name: item.name,
+          category_name: item.category,
+          details: {
+            old_quantity: oldQuantity,
+            new_quantity: newQuantity,
+            item_type: item.item_type,
+            warehouse: warehouse,
+          },
         });
 
       if (transactionError) throw transactionError;
@@ -91,7 +102,7 @@ export const ReturnItemDialog = ({
 
       // Only update quantity for multiple items
       if (item.item_type === "множественный") {
-        updateData.quantity = item.quantity + actualQuantity;
+        updateData.quantity = newQuantity;
       }
 
       const { error: updateError } = await supabase

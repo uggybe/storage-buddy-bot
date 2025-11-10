@@ -71,7 +71,10 @@ export const TakeItemDialog = ({
 
       if (!appUser) throw new Error("User profile not found");
 
-      // Create transaction
+      // Create transaction with old/new quantity details
+      const oldQuantity = item.quantity;
+      const newQuantity = item.item_type === "множественный" ? item.quantity - actualQuantity : item.quantity;
+
       const { error: transactionError } = await supabase
         .from("transactions")
         .insert({
@@ -80,6 +83,14 @@ export const TakeItemDialog = ({
           action: "взято",
           quantity: actualQuantity,
           purpose: purpose.trim(),
+          item_name: item.name,
+          category_name: item.category,
+          details: {
+            old_quantity: oldQuantity,
+            new_quantity: newQuantity,
+            item_type: item.item_type,
+            warehouse: item.warehouse,
+          },
         });
 
       if (transactionError) throw transactionError;
@@ -88,7 +99,7 @@ export const TakeItemDialog = ({
       if (item.item_type === "множественный") {
         const { error: updateError } = await supabase
           .from("items")
-          .update({ quantity: item.quantity - actualQuantity })
+          .update({ quantity: newQuantity })
           .eq("id", item.id);
 
         if (updateError) throw updateError;

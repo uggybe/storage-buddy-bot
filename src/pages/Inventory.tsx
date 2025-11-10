@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, History } from "lucide-react";
+import { Plus, Search, History, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 import { ItemCard } from "@/components/ItemCard";
@@ -29,6 +29,8 @@ const Inventory = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedWarehouse, setSelectedWarehouse] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedItemType, setSelectedItemType] = useState<string>("all");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [userName, setUserName] = useState("");
 
@@ -180,8 +182,21 @@ const Inventory = () => {
       filtered = filtered.filter(item => item.category === selectedCategory);
     }
 
+    if (selectedItemType !== "all") {
+      filtered = filtered.filter(item => item.item_type === selectedItemType);
+    }
+
+    // Apply sorting
+    if (sortOrder) {
+      filtered = [...filtered].sort((a, b) => {
+        const aQty = a.quantity;
+        const bQty = b.quantity;
+        return sortOrder === "asc" ? aQty - bQty : bQty - aQty;
+      });
+    }
+
     setFilteredItems(filtered);
-  }, [items, searchQuery, selectedWarehouse, selectedCategory]);
+  }, [items, searchQuery, selectedWarehouse, selectedCategory, selectedItemType, sortOrder]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -205,7 +220,7 @@ const Inventory = () => {
       </header>
 
       <main className="container mx-auto px-4 py-4">
-        <div className="mb-4 space-y-3">
+        <div className="mb-3 space-y-2">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold">Инвентарь</h1>
             <Button onClick={() => setIsAddDialogOpen(true)}>
@@ -214,44 +229,79 @@ const Inventory = () => {
             </Button>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Поиск по названию..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
+          <div className="flex flex-col gap-2">
+            <div className="grid gap-2 md:grid-cols-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Поиск по названию..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+
+              <Select value={selectedWarehouse} onValueChange={setSelectedWarehouse}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Все склады" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все склады</SelectItem>
+                  {warehouses.map(warehouse => (
+                    <SelectItem key={warehouse} value={warehouse}>
+                      {warehouse}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Все категории" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все категории</SelectItem>
+                  {categories.map(category => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedItemType} onValueChange={setSelectedItemType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Все типы" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все типы</SelectItem>
+                  <SelectItem value="единичный">Единичный</SelectItem>
+                  <SelectItem value="множественный">Множественный</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <Select value={selectedWarehouse} onValueChange={setSelectedWarehouse}>
-              <SelectTrigger>
-                <SelectValue placeholder="Все склады" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все склады</SelectItem>
-                {warehouses.map(warehouse => (
-                  <SelectItem key={warehouse} value={warehouse}>
-                    {warehouse}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder="Все категории" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все категории</SelectItem>
-                {categories.map(category => (
-                  <SelectItem key={category} value={category}>
-                    {category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Сортировка:</span>
+              <Button
+                variant={sortOrder === "desc" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSortOrder(sortOrder === "desc" ? null : "desc")}
+                title="Сортировать по количеству (убывание)"
+              >
+                <ArrowDown className="h-4 w-4 mr-1" />
+                Кол-во
+              </Button>
+              <Button
+                variant={sortOrder === "asc" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSortOrder(sortOrder === "asc" ? null : "asc")}
+                title="Сортировать по количеству (возрастание)"
+              >
+                <ArrowUp className="h-4 w-4 mr-1" />
+                Кол-во
+              </Button>
+            </div>
           </div>
         </div>
 

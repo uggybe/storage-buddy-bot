@@ -76,16 +76,30 @@ const TransactionLog = () => {
     }).format(date);
   };
 
-  const getActionText = (action: string, quantity: number) => {
+  const getActionText = (action: string, quantity: number, details: any) => {
+    const itemType = details?.item_type;
+    const oldQty = details?.old_quantity;
+    const newQty = details?.new_quantity;
+    const showQuantityChange = itemType === "множественный" && oldQty !== undefined && newQty !== undefined;
+
     switch (action) {
       case "взято":
-        return `Взял (${quantity} шт.)`;
+        if (showQuantityChange) {
+          return `Взял (${quantity} шт.) — было ${oldQty} → стало ${newQty}`;
+        }
+        return itemType === "единичный" ? "Взял" : `Взял (${quantity} шт.)`;
       case "возвращено":
-        return `Вернул (${quantity} шт.)`;
+        if (showQuantityChange) {
+          return `Вернул (${quantity} шт.) — было ${oldQty} → стало ${newQty}`;
+        }
+        return itemType === "единичный" ? "Вернул" : `Вернул (${quantity} шт.)`;
       case "пополнено":
+        if (showQuantityChange) {
+          return `Пополнил (+${quantity} шт.) — было ${oldQty} → стало ${newQty}`;
+        }
         return `Пополнил (+${quantity} шт.)`;
       case "создано":
-        return `Создал предмет (${quantity} шт.)`;
+        return itemType === "единичный" ? "Создал предмет" : `Создал предмет (${quantity} шт.)`;
       case "изменено":
         return `Изменил предмет`;
       case "удалено":
@@ -181,7 +195,7 @@ const TransactionLog = () => {
       const csvData = (data || []).map((t: Transaction) => ({
         'Дата': formatDate(t.created_at),
         'Пользователь': t.app_users?.name || 'Неизвестный',
-        'Действие': getActionText(t.action, t.quantity),
+        'Действие': getActionText(t.action, t.quantity, t.details),
         'Предмет': t.item_name || t.items?.name || 'Категория',
         'Модель': t.items?.model || '',
         'Категория': t.category_name || '',
@@ -302,7 +316,7 @@ const TransactionLog = () => {
                         {transaction.app_users?.name || "Неизвестный пользователь"}
                       </span>
                       <span className="text-sm">
-                        {getActionText(transaction.action, transaction.quantity)}
+                        {getActionText(transaction.action, transaction.quantity, transaction.details)}
                       </span>
                     </div>
                     {(transaction.item_name || transaction.items?.name) && (
