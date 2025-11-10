@@ -147,7 +147,7 @@ export const EditItemDialog = ({
         <DialogHeader>
           <DialogTitle>Редактировать предмет</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-2">
           <div className="space-y-1.5">
             <Label htmlFor="edit-name">Название *</Label>
             <Input

@@ -175,7 +175,7 @@ export const ItemCard = ({
               <CardTitle className="text-base leading-tight truncate">{item.name}</CardTitle>
             </div>
 
-            {/* Количество справа - крупно */}
+            {/* Количество справа - крупно в маленьком блоке */}
             {!isExpanded && (
               <div className="flex items-center gap-2 flex-shrink-0">
                 {item.item_type === "множественный" && (
@@ -187,29 +187,24 @@ export const ItemCard = ({
                     )}
                   </span>
                 )}
+                {/* Для единичных - компактно показать статус */}
                 {item.item_type === "единичный" && item.current_user_id && currentUser && (
-                  <span className="text-xs font-medium text-yellow-600 truncate max-w-[80px]">
-                    {item.current_user_id === currentUserId ? "У вас" : currentUser.name}
+                  <span className="text-sm font-medium text-yellow-700">
+                    {item.current_user_id === currentUserId ? "Взят" : currentUser.name.split(' ')[0]}
                   </span>
                 )}
-                {item.item_type === "единичный" && !item.current_user_id && (
-                  <span className="text-xs font-medium text-green-600">
-                    Свободен
-                  </span>
-                )}
-                {/* Только кнопка редактирования в маленьком блоке */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 flex-shrink-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsEditDialogOpen(true);
-                  }}
-                >
-                  <Edit className="h-3.5 w-3.5" />
-                </Button>
               </div>
+            )}
+
+            {/* Количество справа - крупно в большом блоке */}
+            {isExpanded && item.item_type === "множественный" && (
+              <span className="text-2xl font-bold tabular-nums">
+                {item.quantity === 0 ? (
+                  <span className="text-red-600">0</span>
+                ) : (
+                  <span>{item.quantity}</span>
+                )}
+              </span>
             )}
           </div>
         </CardHeader>
@@ -299,6 +294,15 @@ export const ItemCard = ({
                       Вернуть
                     </Button>
                   )}
+                  {/* Edit button in expanded view */}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9"
+                    onClick={() => setIsEditDialogOpen(true)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
                   {/* Delete button in expanded view */}
                   <Button
                     variant="destructive"
@@ -327,6 +331,15 @@ export const ItemCard = ({
                     onClick={() => setIsAddDialogOpen(true)}
                   >
                     Добавить
+                  </Button>
+                  {/* Edit button in expanded view */}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9"
+                    onClick={() => setIsEditDialogOpen(true)}
+                  >
+                    <Edit className="h-4 w-4" />
                   </Button>
                   {/* Delete button in expanded view */}
                   <Button

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Settings, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -30,6 +30,7 @@ export const WarehouseSelect = ({
 }) => {
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isManageDialogOpen, setIsManageDialogOpen] = useState(false);
   const [newWarehouseName, setNewWarehouseName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
@@ -115,6 +116,56 @@ export const WarehouseSelect = ({
     }
   };
 
+  const handleDeleteWarehouse = async (warehouseId: string, warehouseName: string) => {
+    if (!confirm(`Удалить склад "${warehouseName}"? Это не удалит предметы, но нужно будет переназначить склад для существующих предметов.`)) {
+      return;
+    }
+
+    try {
+      // Get authenticated user
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error("Not authenticated");
+
+      // Get user's app_users record
+      const { data: appUser } = await supabase
+        .from("app_users")
+        .select("id")
+        .eq("user_id", session.user.id)
+        .single();
+
+      if (!appUser) throw new Error("User profile not found");
+
+      // Log the action before deletion
+      await supabase.from("transactions").insert({
+        user_id: appUser.id,
+        action: "склад удален",
+        quantity: 1,
+        item_name: warehouseName,
+        details: {
+          warehouse_name: warehouseName,
+        },
+      });
+
+      // Delete warehouse
+      const { error } = await supabase
+        .from('warehouses')
+        .delete()
+        .eq("id", warehouseId);
+
+      if (error) {
+        toast.error("Ошибка удаления склада");
+        console.error(error);
+        return;
+      }
+
+      toast.success("Склад удален");
+      fetchWarehouses();
+    } catch (error) {
+      console.error("Error deleting warehouse:", error);
+      toast.error("Ошибка удаления склада");
+    }
+  };
+
   return (
     <div className="flex gap-2">
       <Select value={value} onValueChange={onChange} disabled={disabled}>
@@ -170,6 +221,56 @@ export const WarehouseSelect = ({
                 {isCreating ? "Создание..." : "Создать"}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Управление складами */}
+      <Dialog open={isManageDialogOpen} onOpenChange={setIsManageDialogOpen}>
+        <DialogTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => setIsManageDialogOpen(true)}
+            disabled={disabled}
+            title="Управление складами"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-2xl" onOpenAutoFocus={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>Управление складами</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto space-y-2 pr-2">
+            {warehouses.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">Нет складов</p>
+            ) : (
+              warehouses.map((warehouse) => (
+                <div
+                  key={warehouse.id}
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
+                >
+                  <div className="flex-1">
+                    <p className="font-medium">{warehouse.name}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleDeleteWarehouse(warehouse.id, warehouse.name)}
+                    title="Удалить"
+                  >
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="flex justify-end pt-2">
+            <Button variant="outline" onClick={() => setIsManageDialogOpen(false)}>
+              Закрыть
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
