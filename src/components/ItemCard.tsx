@@ -168,59 +168,67 @@ export const ItemCard = ({
 
   return (
     <>
-      <Card className={`${getBorderColor()} cursor-pointer min-h-[100px] transition-all`} onClick={() => setIsExpanded(!isExpanded)}>
-        <CardHeader className="py-2 px-4">
-          <div className="flex items-start justify-between gap-2">
+      <Card className={`${getBorderColor()} cursor-pointer transition-all`} onClick={() => setIsExpanded(!isExpanded)}>
+        <CardHeader className="py-2 px-3">
+          <div className="flex items-center justify-between gap-2">
             <div className="flex-1 min-w-0">
-              <CardTitle className="text-base leading-tight">{item.name}</CardTitle>
-              {item.model && (
-                <p className="text-xs text-muted-foreground mt-0.5 truncate">{item.model}</p>
-              )}
-              {!isExpanded && (
-                <div className="flex items-center gap-2 mt-1.5">
-                  {item.item_type === "множественный" && (
-                    <span className="text-xs font-medium">
-                      Кол-во: {item.quantity === 0 ? (
-                        <span className="text-red-600">Нет 😢</span>
-                      ) : (
-                        <span>{item.quantity}</span>
-                      )}
-                    </span>
-                  )}
-                  {item.item_type === "единичный" && item.current_user_id && currentUser && (
-                    <span className="text-xs font-medium text-yellow-600 truncate">
-                      {item.current_user_id === currentUserId ? "У вас" : `У: ${currentUser.name}`}
-                    </span>
-                  )}
-                  {item.item_type === "единичный" && !item.current_user_id && (
-                    <span className="text-xs font-medium text-green-600">
-                      Свободен
-                    </span>
-                  )}
-                </div>
-              )}
-              {isExpanded && (
-                <div className="flex flex-wrap gap-1.5 mt-1.5">
-                  <Badge variant="secondary" className="text-xs px-2 py-0">{item.category}</Badge>
-                  <Badge variant="outline" className="text-xs px-2 py-0">{item.warehouse}</Badge>
-                </div>
-              )}
+              <CardTitle className="text-base leading-tight truncate">{item.name}</CardTitle>
             </div>
-            <div className="flex gap-0.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsEditDialogOpen(true)}>
-                <Edit className="h-3.5 w-3.5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsDeleteDialogOpen(true)}>
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
+
+            {/* Количество справа - крупно */}
+            {!isExpanded && (
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {item.item_type === "множественный" && (
+                  <span className="text-2xl font-bold tabular-nums">
+                    {item.quantity === 0 ? (
+                      <span className="text-red-600">0</span>
+                    ) : (
+                      <span>{item.quantity}</span>
+                    )}
+                  </span>
+                )}
+                {item.item_type === "единичный" && item.current_user_id && currentUser && (
+                  <span className="text-xs font-medium text-yellow-600 truncate max-w-[80px]">
+                    {item.current_user_id === currentUserId ? "У вас" : currentUser.name}
+                  </span>
+                )}
+                {item.item_type === "единичный" && !item.current_user_id && (
+                  <span className="text-xs font-medium text-green-600">
+                    Свободен
+                  </span>
+                )}
+                {/* Только кнопка редактирования в маленьком блоке */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 flex-shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsEditDialogOpen(true);
+                  }}
+                >
+                  <Edit className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            )}
           </div>
         </CardHeader>
 
         {isExpanded && (
           <>
-            <CardContent className="space-y-1.5 py-1 px-4">
-              {item.item_type === "множественный" && item.quantity > 0 && (
+            <CardContent className="space-y-1.5 py-2 px-3">
+              {/* Модель */}
+              {item.model && (
+                <p className="text-xs text-muted-foreground">{item.model}</p>
+              )}
+
+              {/* Badges */}
+              <div className="flex flex-wrap gap-1.5">
+                <Badge variant="secondary" className="text-xs px-2 py-0">{item.category}</Badge>
+                <Badge variant="outline" className="text-xs px-2 py-0">{item.warehouse}</Badge>
+              </div>
+
+              {item.item_type === "множественный" && (
                 <div className="flex items-center gap-1.5">
                   <Package className="h-3.5 w-3.5 text-muted-foreground" />
                   <span className="text-xs">
@@ -267,7 +275,7 @@ export const ItemCard = ({
               )}
             </CardContent>
 
-            <CardFooter className="gap-2 py-1.5 px-4" onClick={(e) => e.stopPropagation()}>
+            <CardFooter className="gap-2 py-2 px-3 flex-wrap" onClick={(e) => e.stopPropagation()}>
               {/* For single items: show buttons based on current_user_id */}
               {item.item_type === "единичный" ? (
                 <>
@@ -291,7 +299,15 @@ export const ItemCard = ({
                       Вернуть
                     </Button>
                   )}
-                  {/* If taken by someone else, hide both buttons */}
+                  {/* Delete button in expanded view */}
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="h-9 w-9"
+                    onClick={() => setIsDeleteDialogOpen(true)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </>
               ) : (
                 /* For multiple items: show Take and Add buttons (no Return) */
@@ -311,6 +327,15 @@ export const ItemCard = ({
                     onClick={() => setIsAddDialogOpen(true)}
                   >
                     Добавить
+                  </Button>
+                  {/* Delete button in expanded view */}
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="h-9 w-9"
+                    onClick={() => setIsDeleteDialogOpen(true)}
+                  >
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </>
               )}
