@@ -44,9 +44,31 @@ const Login = () => {
     const userName = telegramUser.first_name + (telegramUser.last_name ? ` ${telegramUser.last_name}` : '');
 
     console.log("Telegram user:", telegramId, userName);
-    setDebugInfo(`Вход в систему для ${userName}...`);
+    setDebugInfo(`Проверка доступа для ${userName}...`);
 
     try {
+      // СНАЧАЛА проверяем whitelist БЕЗ авторизации
+      console.log("Checking whitelist first...");
+      const { data: isWhitelisted, error: whitelistError } = await supabase.rpc('is_telegram_user_whitelisted', {
+        user_telegram_id: telegramId
+      });
+
+      if (whitelistError) {
+        console.error("Whitelist check error:", whitelistError);
+        throw new Error(`Ошибка проверки доступа: ${whitelistError.message}`);
+      }
+
+      console.log("Whitelist check result:", isWhitelisted);
+
+      if (!isWhitelisted) {
+        console.log("User not in whitelist");
+        setAuthError(`У вас нет доступа к этому приложению.\nВаш Telegram ID: ${telegramId}\nОбратитесь к администратору.`);
+        setIsLoading(false);
+        return false;
+      }
+
+      // Пользователь в whitelist - продолжаем авторизацию
+      setDebugInfo(`Вход в систему для ${userName}...`);
 
       // Create unique email based on Telegram ID
       const telegramEmail = `telegram_${telegramId}@telegram.app`;
@@ -91,7 +113,7 @@ const Login = () => {
           setTimeout(() => reject(new Error("Sign up timeout")), 10000)
         );
 
-        const { error: signUpError } = await Promise.race([
+        const { data: signUpData, error: signUpError } = await Promise.race([
           signUpPromise,
           signUpTimeout
         ]) as any;
@@ -101,7 +123,22 @@ const Login = () => {
           throw signUpError;
         }
 
-        console.log("Sign up successful");
+        console.log("Sign up successful, creating app_users record...");
+
+        // Создаем запись в app_users вручную
+        if (signUpData?.user) {
+          const { error: appUserError } = await supabase
+            .from('app_users')
+            .insert({
+              user_id: signUpData.user.id,
+              name: userName
+            });
+
+          if (appUserError) {
+            console.error("Error creating app_users record:", appUserError);
+            // Не критично, продолжаем
+          }
+        }
       } else {
         console.log("Sign in successful");
       }
@@ -112,30 +149,6 @@ const Login = () => {
 
       if (!session) {
         throw new Error("Сессия не создана после авторизации");
-      }
-
-      console.log("Session confirmed, checking whitelist");
-      setDebugInfo("Проверка доступа...");
-
-      // Check whitelist AFTER authentication
-      const { data: isWhitelisted, error: whitelistError } = await supabase.rpc('is_telegram_user_whitelisted', {
-        user_telegram_id: telegramId
-      });
-
-      if (whitelistError) {
-        console.error("Whitelist check error:", whitelistError);
-        await supabase.auth.signOut();
-        throw new Error(`Ошибка проверки доступа: ${whitelistError.message}`);
-      }
-
-      console.log("Whitelist check result:", isWhitelisted);
-
-      if (!isWhitelisted) {
-        console.log("User not whitelisted, signing out");
-        await supabase.auth.signOut();
-        setAuthError(`У вас нет доступа к этому приложению.\nВаш Telegram ID: ${telegramId}\nОбратитесь к администратору.`);
-        setIsLoading(false);
-        return false;
       }
 
       console.log("Access granted, navigating to inventory");
