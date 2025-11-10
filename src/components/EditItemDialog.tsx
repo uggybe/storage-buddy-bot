@@ -180,10 +180,14 @@ export const EditItemDialog = ({
               <Label htmlFor="edit-quantity">Количество</Label>
               <Input
                 id="edit-quantity"
-                type="number"
-                min="0"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9]/g, '');
+                  setFormData({ ...formData, quantity: parseInt(value) || 0 });
+                }}
                 disabled={isLoading}
                 className="w-full"
               />

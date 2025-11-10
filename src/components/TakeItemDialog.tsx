@@ -118,11 +118,15 @@ export const TakeItemDialog = ({
               <Label htmlFor="quantity">Количество</Label>
               <Input
                 id="quantity"
-                type="number"
-                min="1"
-                max={item.quantity}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={quantity}
-                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9]/g, '');
+                  const numValue = parseInt(value) || 1;
+                  setQuantity(Math.min(Math.max(numValue, 1), item.quantity));
+                }}
                 disabled={isLoading}
               />
               <p className="text-xs text-muted-foreground">

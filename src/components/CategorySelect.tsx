@@ -256,10 +256,14 @@ export const CategorySelect = ({
               <Label htmlFor="new-critical-quantity">Минимальное количество *</Label>
               <Input
                 id="new-critical-quantity"
-                type="number"
-                min="0"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={newCriticalQuantity}
-                onChange={(e) => setNewCriticalQuantity(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9]/g, '');
+                  setNewCriticalQuantity(value || '0');
+                }}
                 className="w-full"
               />
               <p className="text-xs text-muted-foreground">
@@ -347,10 +351,14 @@ export const CategorySelect = ({
               <Label htmlFor="edit-critical-quantity">Минимальное количество *</Label>
               <Input
                 id="edit-critical-quantity"
-                type="number"
-                min="0"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={newCriticalQuantity}
-                onChange={(e) => setNewCriticalQuantity(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9]/g, '');
+                  setNewCriticalQuantity(value || '0');
+                }}
                 className="w-full"
               />
               <p className="text-xs text-muted-foreground">

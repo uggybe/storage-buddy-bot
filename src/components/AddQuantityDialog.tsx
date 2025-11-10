@@ -84,10 +84,14 @@ export const AddQuantityDialog = ({
             <Label htmlFor="add-quantity">Количество для добавления</Label>
             <Input
               id="add-quantity"
-              type="number"
-              min="1"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={quantity}
-              onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^0-9]/g, '');
+                setQuantity(parseInt(value) || 1);
+              }}
               disabled={isLoading}
             />
             <p className="text-xs text-muted-foreground">
