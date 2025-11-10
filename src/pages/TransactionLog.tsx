@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download } from "lucide-react";
 import { toast } from "sonner";
-import * as XLSX from 'xlsx';
 import logo from "@/assets/logo.png";
 
 type Transaction = {
@@ -128,8 +127,33 @@ const TransactionLog = () => {
     }
   };
 
+  const convertToCSV = (data: any[]) => {
+    if (data.length === 0) return '';
+
+    // Get headers
+    const headers = Object.keys(data[0]);
+    const csvHeaders = headers.join(',');
+
+    // Get rows
+    const csvRows = data.map(row => {
+      return headers.map(header => {
+        const value = row[header];
+        // Escape quotes and wrap in quotes if contains comma or quote
+        const stringValue = String(value || '');
+        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+          return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return stringValue;
+      }).join(',');
+    }).join('\n');
+
+    return `${csvHeaders}\n${csvRows}`;
+  };
+
   const exportToExcel = async () => {
     try {
+      toast.info("Подготовка файла...");
+
       // Fetch all transactions (not just 100)
       const { data, error } = await supabase
         .from("transactions")
@@ -142,8 +166,8 @@ const TransactionLog = () => {
 
       if (error) throw error;
 
-      // Prepare data for Excel
-      const excelData = (data || []).map((t: Transaction) => ({
+      // Prepare data for CSV
+      const csvData = (data || []).map((t: Transaction) => ({
         'Дата': formatDate(t.created_at),
         'Пользователь': t.app_users?.name || 'Неизвестный',
         'Действие': getActionText(t.action, t.quantity),
@@ -155,35 +179,30 @@ const TransactionLog = () => {
         'Детали': t.details ? JSON.stringify(t.details) : '',
       }));
 
-      // Create worksheet and workbook
-      const ws = XLSX.utils.json_to_sheet(excelData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Журнал событий');
+      // Convert to CSV
+      const csv = convertToCSV(csvData);
 
-      // Set column widths
-      const colWidths = [
-        { wch: 18 }, // Дата
-        { wch: 20 }, // Пользователь
-        { wch: 25 }, // Действие
-        { wch: 30 }, // Предмет
-        { wch: 20 }, // Модель
-        { wch: 20 }, // Категория
-        { wch: 12 }, // Количество
-        { wch: 40 }, // Назначение
-        { wch: 40 }, // Детали
-      ];
-      ws['!cols'] = colWidths;
+      // Create blob with BOM for Excel UTF-8 support
+      const BOM = '\uFEFF';
+      const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
 
       // Generate filename with current date
-      const fileName = `Журнал_событий_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const fileName = `Журнал_событий_${new Date().toISOString().split('T')[0]}.csv`;
 
-      // Download file
-      XLSX.writeFile(wb, fileName);
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
 
-      toast.success("Excel файл экспортирован");
+      toast.success("Файл экспортирован");
     } catch (error) {
-      console.error("Error exporting to Excel:", error);
-      toast.error("Ошибка экспорта в Excel");
+      console.error("Error exporting:", error);
+      toast.error("Ошибка экспорта файла");
     }
   };
 
@@ -210,7 +229,7 @@ const TransactionLog = () => {
               className="flex items-center gap-2"
             >
               <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">Экспорт в Excel</span>
+              <span className="hidden sm:inline">Скачать CSV</span>
             </Button>
           </div>
         </div>

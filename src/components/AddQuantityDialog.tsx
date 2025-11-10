@@ -38,9 +38,10 @@ export const AddQuantityDialog = ({
   }, [open, item.location]);
 
   const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    // Prevent scroll on focus to avoid layout jumping
-    e.preventDefault();
-    e.target.focus({ preventScroll: true });
+    // Scroll to input after keyboard appears
+    setTimeout(() => {
+      e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
