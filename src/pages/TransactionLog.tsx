@@ -52,8 +52,7 @@ const TransactionLog = () => {
           app_users (name),
           items (name, model)
         `)
-        .order("created_at", { ascending: false })
-        .limit(100);
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
 
@@ -97,6 +96,12 @@ const TransactionLog = () => {
         return `Изменил категорию`;
       case "категория удалена":
         return `Удалил категорию`;
+      case "склад создан":
+        return `Создал склад`;
+      case "склад изменен":
+        return `Изменил склад`;
+      case "склад удален":
+        return `Удалил склад`;
       default:
         return action;
     }
@@ -122,6 +127,12 @@ const TransactionLog = () => {
         return "text-violet-600 bg-violet-50 border-violet-200";
       case "категория удалена":
         return "text-pink-600 bg-pink-50 border-pink-200";
+      case "склад создан":
+        return "text-cyan-600 bg-cyan-50 border-cyan-200";
+      case "склад изменен":
+        return "text-teal-600 bg-teal-50 border-teal-200";
+      case "склад удален":
+        return "text-orange-600 bg-orange-50 border-orange-200";
       default:
         return "text-gray-600 bg-gray-50 border-gray-200";
     }

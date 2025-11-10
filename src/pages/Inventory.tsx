@@ -25,6 +25,7 @@ const Inventory = () => {
   const [items, setItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
+  const [warehouses, setWarehouses] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedWarehouse, setSelectedWarehouse] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -69,6 +70,7 @@ const Inventory = () => {
       setUserName(name);
       console.log("User name:", name);
 
+      fetchWarehouses();
       fetchItems();
     });
 
@@ -125,6 +127,21 @@ const Inventory = () => {
     };
   }, [navigate]);
 
+  const fetchWarehouses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("warehouses")
+        .select("name")
+        .order("name");
+
+      if (error) throw error;
+
+      setWarehouses(data?.map(w => w.name) || []);
+    } catch (error) {
+      console.error("Error fetching warehouses:", error);
+    }
+  };
+
   const fetchItems = async () => {
     try {
       const { data, error } = await supabase
@@ -135,7 +152,7 @@ const Inventory = () => {
       if (error) throw error;
 
       setItems(data || []);
-      
+
       // Extract unique categories
       const uniqueCategories = [...new Set(data?.map(item => item.category) || [])];
       setCategories(uniqueCategories);
@@ -187,8 +204,8 @@ const Inventory = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
-        <div className="mb-6 space-y-4">
+      <main className="container mx-auto px-4 py-4">
+        <div className="mb-4 space-y-3">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold">Инвентарь</h1>
             <Button onClick={() => setIsAddDialogOpen(true)}>
@@ -197,7 +214,7 @@ const Inventory = () => {
             </Button>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -214,9 +231,11 @@ const Inventory = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Все склады</SelectItem>
-                <SelectItem value="Мастерская">Мастерская</SelectItem>
-                <SelectItem value="Холодный">Холодный</SelectItem>
-                <SelectItem value="Теплый">Теплый</SelectItem>
+                {warehouses.map(warehouse => (
+                  <SelectItem key={warehouse} value={warehouse}>
+                    {warehouse}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
@@ -236,14 +255,14 @@ const Inventory = () => {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
           {filteredItems.map(item => (
             <ItemCard key={item.id} item={item} onUpdate={fetchItems} userName={userName} />
           ))}
         </div>
 
         {filteredItems.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground">
+          <div className="text-center py-8 text-muted-foreground">
             Предметы не найдены
           </div>
         )}

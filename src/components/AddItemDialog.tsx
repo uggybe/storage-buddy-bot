@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CategorySelect } from "./CategorySelect";
+import { WarehouseSelect } from "./WarehouseSelect";
 
 export const AddItemDialog = ({
   open,
@@ -123,8 +124,8 @@ export const AddItemDialog = ({
         <DialogHeader>
           <DialogTitle>Добавить предмет</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="space-y-1.5">
             <Label htmlFor="name">Название *</Label>
             <Input
               id="name"
@@ -136,7 +137,7 @@ export const AddItemDialog = ({
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="model">Модель *</Label>
             <Input
               id="model"
@@ -149,7 +150,7 @@ export const AddItemDialog = ({
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label>Категория *</Label>
             <CategorySelect
               value={formData.category}
@@ -158,25 +159,16 @@ export const AddItemDialog = ({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="warehouse">Склад *</Label>
-            <Select
+          <div className="space-y-1.5">
+            <Label>Склад *</Label>
+            <WarehouseSelect
               value={formData.warehouse}
-              onValueChange={(value) => setFormData({ ...formData, warehouse: value })}
+              onChange={(value) => setFormData({ ...formData, warehouse: value })}
               disabled={isLoading}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Выберите склад" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Мастерская">Мастерская</SelectItem>
-                <SelectItem value="Холодный">Холодный склад</SelectItem>
-                <SelectItem value="Теплый">Теплый склад</SelectItem>
-              </SelectContent>
-            </Select>
+            />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="item_type">Тип предмета *</Label>
             <Select
               value={formData.item_type}
@@ -194,7 +186,7 @@ export const AddItemDialog = ({
           </div>
 
           {formData.item_type === "множественный" && (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="quantity">Количество</Label>
               <Input
                 id="quantity"
@@ -216,7 +208,7 @@ export const AddItemDialog = ({
             </div>
           )}
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="location">Местоположение *</Label>
             <Input
               id="location"
@@ -229,7 +221,7 @@ export const AddItemDialog = ({
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="notes">Примечания</Label>
             <Textarea
               id="notes"
