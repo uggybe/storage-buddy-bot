@@ -72,11 +72,36 @@ export const WarehouseSelect = ({
     setIsCreating(true);
 
     try {
+      // Get authenticated user
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error("Not authenticated");
+
+      // Get user's app_users record
+      const { data: appUser } = await supabase
+        .from("app_users")
+        .select("id")
+        .eq("user_id", session.user.id)
+        .single();
+
+      if (!appUser) throw new Error("User profile not found");
+
+      // Create warehouse
       const { error } = await supabase
         .from('warehouses')
         .insert({ name: newWarehouseName.trim() });
 
       if (error) throw error;
+
+      // Log the action
+      await supabase.from("transactions").insert({
+        user_id: appUser.id,
+        action: "склад создан",
+        quantity: 1,
+        item_name: newWarehouseName.trim(),
+        details: {
+          warehouse_name: newWarehouseName.trim(),
+        },
+      });
 
       toast.success("Склад создан");
       setNewWarehouseName("");
