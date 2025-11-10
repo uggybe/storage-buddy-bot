@@ -154,15 +154,6 @@ const TransactionLog = () => {
     try {
       toast.info("Подготовка файла...");
 
-      // Get Telegram user ID
-      const telegramWebApp = (window as any).Telegram?.WebApp;
-      const chatId = telegramWebApp?.initDataUnsafe?.user?.id;
-
-      if (!chatId) {
-        toast.error("Не удалось получить ID пользователя Telegram");
-        return;
-      }
-
       // Fetch all transactions (not just 100)
       const { data, error } = await supabase
         .from("transactions")
@@ -195,27 +186,48 @@ const TransactionLog = () => {
       // Generate filename with current date
       const fileName = `Журнал_событий_${new Date().toISOString().split('T')[0]}.csv`;
 
-      toast.info("Отправка файла в Telegram...");
+      // Try Edge Function first, fallback to direct download
+      const telegramWebApp = (window as any).Telegram?.WebApp;
+      const chatId = telegramWebApp?.initDataUnsafe?.user?.id;
 
-      // Send file via Telegram bot
-      const response = await supabase.functions.invoke('send-telegram-file', {
-        body: {
-          chatId,
-          csvData: csv,
-          fileName,
-        },
-      });
+      if (chatId) {
+        try {
+          toast.info("Отправка файла в Telegram...");
 
-      if (response.error) {
-        console.error("Function error:", response.error);
-        throw new Error(response.error.message || "Ошибка вызова функции");
+          const response = await supabase.functions.invoke('send-telegram-file', {
+            body: { chatId, csvData: csv, fileName },
+          });
+
+          if (!response.error && response.data?.success) {
+            toast.success("Файл отправлен в Telegram!");
+            return;
+          }
+
+          console.log("Edge Function failed, falling back to download:", response.error);
+        } catch (edgeFunctionError) {
+          console.log("Edge Function error, falling back to download:", edgeFunctionError);
+        }
       }
 
-      if (response.data && !response.data.success) {
-        throw new Error(response.data.error || "Ошибка отправки файла");
-      }
+      // Fallback: direct download
+      toast.info("Скачивание файла...");
 
-      toast.success("Файл отправлен в Telegram!");
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 100);
+
+      toast.success("Файл скачан!");
     } catch (error: any) {
       console.error("Error exporting:", error);
       toast.error("Ошибка экспорта файла: " + (error.message || "Неизвестная ошибка"));
