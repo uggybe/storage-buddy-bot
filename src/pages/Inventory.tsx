@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, LogOut, Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 import { ItemCard } from "@/components/ItemCard";
@@ -62,20 +62,12 @@ const Inventory = () => {
         return;
       }
 
-      // Fetch user's name from app_users table
-      supabase
-        .from("app_users")
-        .select("name")
-        .eq("user_id", session.user.id)
-        .single()
-        .then(({ data, error }) => {
-          if (error) {
-            console.error("Error fetching user:", error);
-            toast.error("Ошибка загрузки данных пользователя");
-            return;
-          }
-          setUserName(data?.name || "");
-        });
+      // Get user's name from Telegram metadata
+      const name = session.user.user_metadata?.name ||
+                   session.user.user_metadata?.first_name ||
+                   "Пользователь";
+      setUserName(name);
+      console.log("User name:", name);
 
       fetchItems();
     });
@@ -87,7 +79,9 @@ const Inventory = () => {
       }
     });
 
-    // Subscribe to real-time changes on items and transactions tables
+    // Real-time subscriptions disabled due to errors
+    // TODO: Re-enable after fixing Realtime configuration
+    /*
     const itemsChannel = supabase
       .channel('database-changes')
       .on(
@@ -123,10 +117,11 @@ const Inventory = () => {
           toast.error('Ошибка подключения к real-time обновлениям');
         }
       });
+    */
 
     return () => {
       subscription.unsubscribe();
-      supabase.removeChannel(itemsChannel);
+      // supabase.removeChannel(itemsChannel); // Disabled with realtime
     };
   }, [navigate]);
 
@@ -171,29 +166,13 @@ const Inventory = () => {
     setFilteredItems(filtered);
   }, [items, searchQuery, selectedWarehouse, selectedCategory]);
 
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-      navigate("/");
-    } catch (error) {
-      console.error("Logout error:", error);
-      toast.error("Ошибка выхода");
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <img src={logo} alt="ЦЭПП Services" className="h-10" />
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground">{userName}</span>
-              <Button variant="outline" size="sm" onClick={handleLogout}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Выход
-              </Button>
-            </div>
+            <span className="text-sm text-muted-foreground">{userName}</span>
           </div>
         </div>
       </header>
