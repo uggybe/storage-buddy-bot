@@ -29,7 +29,7 @@ export const TakeItemDialog = ({
   onSuccess: () => void;
 }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState("1");
   const [purpose, setPurpose] = useState("");
 
   const handleInputFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -47,7 +47,8 @@ export const TakeItemDialog = ({
       return;
     }
 
-    const actualQuantity = item.item_type === "единичный" ? 1 : quantity;
+    const numQuantity = parseInt(quantity) || 1;
+    const actualQuantity = item.item_type === "единичный" ? 1 : numQuantity;
 
     if (item.item_type === "множественный" && actualQuantity > item.quantity) {
       toast.error("Недостаточно предметов на складе");
@@ -96,7 +97,7 @@ export const TakeItemDialog = ({
       toast.success("Предмет взят");
       onSuccess();
       onOpenChange(false);
-      setQuantity(1);
+      setQuantity("1");
       setPurpose("");
     } catch (error) {
       console.error("Error taking item:", error);
@@ -131,8 +132,7 @@ export const TakeItemDialog = ({
                 value={quantity}
                 onChange={(e) => {
                   const value = e.target.value.replace(/[^0-9]/g, '');
-                  const numValue = parseInt(value) || 1;
-                  setQuantity(Math.min(Math.max(numValue, 1), item.quantity));
+                  setQuantity(value);
                 }}
                 onFocus={handleInputFocus}
                 disabled={isLoading}

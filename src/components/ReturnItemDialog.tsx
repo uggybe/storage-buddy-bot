@@ -31,7 +31,7 @@ export const ReturnItemDialog = ({
   onSuccess: () => void;
 }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState("1");
   const [warehouse, setWarehouse] = useState(item.warehouse);
   const [locationDetails, setLocationDetails] = useState(item.location || "");
 
@@ -50,7 +50,8 @@ export const ReturnItemDialog = ({
       return;
     }
 
-    const actualQuantity = item.item_type === "единичный" ? 1 : quantity;
+    const numQuantity = parseInt(quantity) || 1;
+    const actualQuantity = item.item_type === "единичный" ? 1 : numQuantity;
 
     setIsLoading(true);
 
@@ -103,7 +104,7 @@ export const ReturnItemDialog = ({
       toast.success("Предмет возвращен");
       onSuccess();
       onOpenChange(false);
-      setQuantity(1);
+      setQuantity("1");
       setWarehouse(item.warehouse);
       setLocationDetails("");
     } catch (error) {
@@ -132,7 +133,7 @@ export const ReturnItemDialog = ({
                 value={quantity}
                 onChange={(e) => {
                   const value = e.target.value.replace(/[^0-9]/g, '');
-                  setQuantity(parseInt(value) || 1);
+                  setQuantity(value);
                 }}
                 onFocus={handleInputFocus}
                 disabled={isLoading}

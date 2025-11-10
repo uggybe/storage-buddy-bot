@@ -25,7 +25,7 @@ export const AddQuantityDialog = ({
   onSuccess: () => void;
 }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState("1");
   const [location, setLocation] = useState(item.location || "");
   const [isEditingLocation, setIsEditingLocation] = useState(false);
 
@@ -33,7 +33,7 @@ export const AddQuantityDialog = ({
     if (open) {
       setLocation(item.location || "");
       setIsEditingLocation(false);
-      setQuantity(1);
+      setQuantity("1");
     }
   }, [open, item.location]);
 
@@ -47,7 +47,9 @@ export const AddQuantityDialog = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (quantity <= 0) {
+    const numQuantity = parseInt(quantity) || 0;
+
+    if (numQuantity <= 0) {
       toast.error("Количество должно быть больше 0");
       return;
     }
@@ -79,7 +81,7 @@ export const AddQuantityDialog = ({
       const { error: updateError } = await supabase
         .from("items")
         .update({
-          quantity: item.quantity + quantity,
+          quantity: item.quantity + numQuantity,
           location: location.trim() || null
         })
         .eq("id", item.id);
@@ -91,19 +93,19 @@ export const AddQuantityDialog = ({
         item_id: item.id,
         user_id: appUser.id,
         action: "пополнено",
-        quantity: quantity,
+        quantity: numQuantity,
         item_name: item.name,
         category_name: itemData?.category,
         details: {
-          new_total: item.quantity + quantity,
+          new_total: item.quantity + numQuantity,
           location: location.trim() || null,
         },
       });
 
-      toast.success(`Добавлено ${quantity} шт.`);
+      toast.success(`Добавлено ${numQuantity} шт.`);
       onSuccess();
       onOpenChange(false);
-      setQuantity(1);
+      setQuantity("1");
       setLocation("");
       setIsEditingLocation(false);
     } catch (error) {
@@ -131,7 +133,7 @@ export const AddQuantityDialog = ({
               value={quantity}
               onChange={(e) => {
                 const value = e.target.value.replace(/[^0-9]/g, '');
-                setQuantity(parseInt(value) || 1);
+                setQuantity(value);
               }}
               onFocus={handleInputFocus}
               disabled={isLoading}
@@ -140,7 +142,7 @@ export const AddQuantityDialog = ({
               Текущее количество: {item.quantity}
             </p>
             <p className="text-xs text-muted-foreground">
-              После добавления: {item.quantity + quantity}
+              После добавления: {item.quantity + (parseInt(quantity) || 0)}
             </p>
           </div>
 
