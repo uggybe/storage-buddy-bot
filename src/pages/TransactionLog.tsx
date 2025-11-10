@@ -186,48 +186,33 @@ const TransactionLog = () => {
       // Generate filename with current date
       const fileName = `Журнал_событий_${new Date().toISOString().split('T')[0]}.csv`;
 
-      // Try Edge Function first, fallback to direct download
+      // Get Telegram user ID
       const telegramWebApp = (window as any).Telegram?.WebApp;
       const chatId = telegramWebApp?.initDataUnsafe?.user?.id;
 
-      if (chatId) {
-        try {
-          toast.info("Отправка файла в Telegram...");
-
-          const response = await supabase.functions.invoke('send-telegram-file', {
-            body: { chatId, csvData: csv, fileName },
-          });
-
-          if (!response.error && response.data?.success) {
-            toast.success("Файл отправлен в Telegram!");
-            return;
-          }
-
-          console.log("Edge Function failed, falling back to download:", response.error);
-        } catch (edgeFunctionError) {
-          console.log("Edge Function error, falling back to download:", edgeFunctionError);
-        }
+      if (!chatId) {
+        throw new Error("Не удалось получить ID пользователя Telegram");
       }
 
-      // Fallback: direct download
-      toast.info("Скачивание файла...");
+      toast.info("Отправка файла в Telegram...");
 
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
+      // Send file via Telegram bot
+      const response = await supabase.functions.invoke('send-telegram-file', {
+        body: { chatId, csvData: csv, fileName },
+      });
 
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
+      console.log("Edge Function response:", response);
 
-      setTimeout(() => {
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      }, 100);
+      if (response.error) {
+        console.error("Edge Function error:", response.error);
+        throw new Error(`Ошибка отправки: ${response.error.message}`);
+      }
 
-      toast.success("Файл скачан!");
+      if (!response.data?.success) {
+        throw new Error(response.data?.error || "Неизвестная ошибка при отправке файла");
+      }
+
+      toast.success("Файл отправлен в Telegram!");
     } catch (error: any) {
       console.error("Error exporting:", error);
       toast.error("Ошибка экспорта файла: " + (error.message || "Неизвестная ошибка"));
