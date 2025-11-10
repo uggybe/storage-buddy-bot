@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, History } from "lucide-react";
+import { Plus, Search, History, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 import { ItemCard } from "@/components/ItemCard";
@@ -166,6 +166,21 @@ const Inventory = () => {
     setFilteredItems(filtered);
   }, [items, searchQuery, selectedWarehouse, selectedCategory]);
 
+  const addToHomeScreen = () => {
+    try {
+      const telegramWebApp = (window as any).Telegram?.WebApp;
+      if (telegramWebApp?.addToHomeScreen) {
+        telegramWebApp.addToHomeScreen();
+        toast.success("Следуйте инструкциям для добавления иконки");
+      } else {
+        toast.error("Функция недоступна в этой версии Telegram");
+      }
+    } catch (error) {
+      console.error("Error adding to home screen:", error);
+      toast.error("Ошибка добавления иконки");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
@@ -174,6 +189,14 @@ const Inventory = () => {
             <img src={logo} alt="ЦЭПП Services" className="h-10" />
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">{userName}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={addToHomeScreen}
+                title="Добавить на главный экран"
+              >
+                <Smartphone className="h-4 w-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"

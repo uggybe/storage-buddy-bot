@@ -40,7 +40,7 @@ export const EditItemDialog = ({
     category: "",
     warehouse: "",
     item_type: "множественный" as "единичный" | "множественный",
-    quantity: 1,
+    quantity: "1",
     critical_quantity: "",
     location: "",
     notes: "",
@@ -54,7 +54,7 @@ export const EditItemDialog = ({
         category: item.category,
         warehouse: item.warehouse,
         item_type: item.item_type,
-        quantity: item.quantity,
+        quantity: item.quantity.toString(),
         critical_quantity: item.critical_quantity?.toString() || "",
         location: item.location || "",
         notes: item.notes || "",
@@ -94,6 +94,8 @@ export const EditItemDialog = ({
 
       if (!appUser) throw new Error("User profile not found");
 
+      const numQuantity = parseInt(formData.quantity) || 1;
+
       // Update item
       const { error } = await supabase
         .from("items")
@@ -103,7 +105,7 @@ export const EditItemDialog = ({
           category: formData.category,
           warehouse: formData.warehouse as "Мастерская" | "Холодный" | "Теплый",
           item_type: formData.item_type,
-          quantity: formData.item_type === "единичный" ? 1 : formData.quantity,
+          quantity: formData.item_type === "единичный" ? 1 : numQuantity,
           location: formData.location,
           notes: formData.notes || null,
         })
@@ -116,7 +118,7 @@ export const EditItemDialog = ({
         item_id: item.id,
         user_id: appUser.id,
         action: "изменено",
-        quantity: formData.item_type === "единичный" ? 1 : formData.quantity,
+        quantity: formData.item_type === "единичный" ? 1 : numQuantity,
         item_name: formData.name,
         category_name: formData.category,
         details: {
@@ -225,7 +227,7 @@ export const EditItemDialog = ({
                 value={formData.quantity}
                 onChange={(e) => {
                   const value = e.target.value.replace(/[^0-9]/g, '');
-                  setFormData({ ...formData, quantity: parseInt(value) || 0 });
+                  setFormData({ ...formData, quantity: value });
                 }}
                 onFocus={handleInputFocus}
                 disabled={isLoading}

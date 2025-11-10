@@ -25,7 +25,7 @@ export const AddItemDialog = ({
     category: "",
     warehouse: "",
     item_type: "множественный" as "единичный" | "множественный",
-    quantity: 1,
+    quantity: "1",
     critical_quantity: "",
     location: "",
     notes: "",
@@ -63,6 +63,8 @@ export const AddItemDialog = ({
 
       if (!appUser) throw new Error("User profile not found");
 
+      const numQuantity = parseInt(formData.quantity) || 1;
+
       // Insert item
       const { data: newItem, error } = await supabase.from("items").insert({
         name: formData.name,
@@ -70,7 +72,7 @@ export const AddItemDialog = ({
         category: formData.category,
         warehouse: formData.warehouse as "Мастерская" | "Холодный" | "Теплый",
         item_type: formData.item_type,
-        quantity: formData.item_type === "единичный" ? 1 : formData.quantity,
+        quantity: formData.item_type === "единичный" ? 1 : numQuantity,
         location: formData.location,
         notes: formData.notes || null,
       }).select().single();
@@ -82,7 +84,7 @@ export const AddItemDialog = ({
         item_id: newItem.id,
         user_id: appUser.id,
         action: "создано",
-        quantity: formData.item_type === "единичный" ? 1 : formData.quantity,
+        quantity: formData.item_type === "единичный" ? 1 : numQuantity,
         item_name: formData.name,
         category_name: formData.category,
         details: {
@@ -102,7 +104,7 @@ export const AddItemDialog = ({
         category: "",
         warehouse: "",
         item_type: "множественный",
-        quantity: 1,
+        quantity: "1",
         critical_quantity: "",
         location: "",
         notes: "",
@@ -202,7 +204,7 @@ export const AddItemDialog = ({
                 value={formData.quantity}
                 onChange={(e) => {
                   const value = e.target.value.replace(/[^0-9]/g, '');
-                  setFormData({ ...formData, quantity: parseInt(value) || 0 });
+                  setFormData({ ...formData, quantity: value });
                 }}
                 onFocus={handleInputFocus}
                 disabled={isLoading}

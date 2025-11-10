@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft, Download, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 
@@ -150,9 +150,33 @@ const TransactionLog = () => {
     return `${csvHeaders}\n${csvRows}`;
   };
 
+  const addToHomeScreen = () => {
+    try {
+      const telegramWebApp = (window as any).Telegram?.WebApp;
+      if (telegramWebApp?.addToHomeScreen) {
+        telegramWebApp.addToHomeScreen();
+        toast.success("Следуйте инструкциям для добавления иконки");
+      } else {
+        toast.error("Функция недоступна в этой версии Telegram");
+      }
+    } catch (error) {
+      console.error("Error adding to home screen:", error);
+      toast.error("Ошибка добавления иконки");
+    }
+  };
+
   const exportToExcel = async () => {
     try {
       toast.info("Подготовка файла...");
+
+      // Get Telegram user ID
+      const telegramWebApp = (window as any).Telegram?.WebApp;
+      const chatId = telegramWebApp?.initDataUnsafe?.user?.id;
+
+      if (!chatId) {
+        toast.error("Не удалось получить ID пользователя Telegram");
+        return;
+      }
 
       // Fetch all transactions (not just 100)
       const { data, error } = await supabase
@@ -180,26 +204,28 @@ const TransactionLog = () => {
       }));
 
       // Convert to CSV
-      const csv = convertToCSV(csvData);
-
-      // Create blob with BOM for Excel UTF-8 support
       const BOM = '\uFEFF';
-      const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
+      const csv = BOM + convertToCSV(csvData);
 
       // Generate filename with current date
       const fileName = `Журнал_событий_${new Date().toISOString().split('T')[0]}.csv`;
 
-      // Create download link
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', fileName);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      toast.info("Отправка файла в Telegram...");
 
-      toast.success("Файл экспортирован");
+      // Send file via Telegram bot
+      const response = await supabase.functions.invoke('send-telegram-file', {
+        body: {
+          chatId,
+          csvData: csv,
+          fileName,
+        },
+      });
+
+      if (response.error) {
+        throw response.error;
+      }
+
+      toast.success("Файл отправлен в Telegram!");
     } catch (error) {
       console.error("Error exporting:", error);
       toast.error("Ошибка экспорта файла");
@@ -210,8 +236,8 @@ const TransactionLog = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
               <Button
                 variant="ghost"
                 size="icon"
@@ -220,17 +246,28 @@ const TransactionLog = () => {
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <img src={logo} alt="ЦЭПП Services" className="h-10" />
-              <h1 className="text-xl font-semibold">Журнал событий</h1>
+              <h1 className="text-lg sm:text-xl font-semibold truncate">Журнал событий</h1>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={exportToExcel}
-              className="flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">Скачать CSV</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={addToHomeScreen}
+                className="flex items-center gap-2"
+                title="Добавить на главный экран"
+              >
+                <Smartphone className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportToExcel}
+                className="flex items-center gap-2"
+                title="Отправить в Telegram"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </header>
