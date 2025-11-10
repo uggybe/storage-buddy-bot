@@ -54,6 +54,26 @@ export const AddQuantityDialog = ({
     setIsLoading(true);
 
     try {
+      // Get authenticated user
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error("Not authenticated");
+
+      // Get user's app_users record
+      const { data: appUser } = await supabase
+        .from("app_users")
+        .select("id")
+        .eq("user_id", session.user.id)
+        .single();
+
+      if (!appUser) throw new Error("User profile not found");
+
+      // Get item details
+      const { data: itemData } = await supabase
+        .from("items")
+        .select("*")
+        .eq("id", item.id)
+        .single();
+
       // Update item quantity and location
       const { error: updateError } = await supabase
         .from("items")
@@ -64,6 +84,20 @@ export const AddQuantityDialog = ({
         .eq("id", item.id);
 
       if (updateError) throw updateError;
+
+      // Log the action
+      await supabase.from("transactions").insert({
+        item_id: item.id,
+        user_id: appUser.id,
+        action: "пополнено",
+        quantity: quantity,
+        item_name: item.name,
+        category_name: itemData?.category,
+        details: {
+          new_total: item.quantity + quantity,
+          location: location.trim() || null,
+        },
+      });
 
       toast.success(`Добавлено ${quantity} шт.`);
       onSuccess();
