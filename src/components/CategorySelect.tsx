@@ -76,25 +76,54 @@ export const CategorySelect = ({
 
     console.log("Creating category:", newCategoryName.trim(), criticalQty);
 
-    const { error } = await supabase
-      .from("categories")
-      .insert({
-        name: newCategoryName.trim(),
-        critical_quantity: criticalQty,
+    try {
+      // Get authenticated user
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error("Not authenticated");
+
+      // Get user's app_users record
+      const { data: appUser } = await supabase
+        .from("app_users")
+        .select("id")
+        .eq("user_id", session.user.id)
+        .single();
+
+      if (!appUser) throw new Error("User profile not found");
+
+      const { error } = await supabase
+        .from("categories")
+        .insert({
+          name: newCategoryName.trim(),
+          critical_quantity: criticalQty,
+        });
+
+      if (error) {
+        console.error("Category creation error:", error);
+        toast.error(`Ошибка создания категории: ${error.message}`);
+        return;
+      }
+
+      // Log the action
+      await supabase.from("transactions").insert({
+        user_id: appUser.id,
+        action: "категория создана",
+        category_name: newCategoryName.trim(),
+        quantity: 0,
+        details: {
+          critical_quantity: criticalQty,
+        },
       });
 
-    if (error) {
-      console.error("Category creation error:", error);
-      toast.error(`Ошибка создания категории: ${error.message}`);
-      return;
+      toast.success("Категория создана");
+      onChange(newCategoryName.trim());
+      setNewCategoryName("");
+      setNewCriticalQuantity("0");
+      setIsCreateDialogOpen(false);
+      fetchCategories();
+    } catch (error) {
+      console.error("Error creating category:", error);
+      toast.error("Ошибка создания категории");
     }
-
-    toast.success("Категория создана");
-    onChange(newCategoryName.trim());
-    setNewCategoryName("");
-    setNewCriticalQuantity("0");
-    setIsCreateDialogOpen(false);
-    fetchCategories();
   };
 
   const handleUpdateCategory = async () => {
@@ -102,32 +131,63 @@ export const CategorySelect = ({
 
     const criticalQty = parseInt(newCriticalQuantity) || 0;
 
-    const { error } = await supabase
-      .from("categories")
-      .update({
-        name: newCategoryName.trim(),
-        critical_quantity: criticalQty,
-      })
-      .eq("id", editingCategory.id);
+    try {
+      // Get authenticated user
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error("Not authenticated");
 
-    if (error) {
+      // Get user's app_users record
+      const { data: appUser } = await supabase
+        .from("app_users")
+        .select("id")
+        .eq("user_id", session.user.id)
+        .single();
+
+      if (!appUser) throw new Error("User profile not found");
+
+      const { error } = await supabase
+        .from("categories")
+        .update({
+          name: newCategoryName.trim(),
+          critical_quantity: criticalQty,
+        })
+        .eq("id", editingCategory.id);
+
+      if (error) {
+        toast.error("Ошибка обновления категории");
+        console.error(error);
+        return;
+      }
+
+      // Log the action
+      await supabase.from("transactions").insert({
+        user_id: appUser.id,
+        action: "категория изменена",
+        category_name: newCategoryName.trim(),
+        quantity: 0,
+        details: {
+          old_name: editingCategory.name,
+          new_name: newCategoryName.trim(),
+          critical_quantity: criticalQty,
+        },
+      });
+
+      toast.success("Категория обновлена");
+
+      // Update selected value if it was changed
+      if (value === editingCategory.name) {
+        onChange(newCategoryName.trim());
+      }
+
+      setIsEditDialogOpen(false);
+      setEditingCategory(null);
+      setNewCategoryName("");
+      setNewCriticalQuantity("0");
+      fetchCategories();
+    } catch (error) {
+      console.error("Error updating category:", error);
       toast.error("Ошибка обновления категории");
-      console.error(error);
-      return;
     }
-
-    toast.success("Категория обновлена");
-
-    // Update selected value if it was changed
-    if (value === editingCategory.name) {
-      onChange(newCategoryName.trim());
-    }
-
-    setIsEditDialogOpen(false);
-    setEditingCategory(null);
-    setNewCategoryName("");
-    setNewCriticalQuantity("0");
-    fetchCategories();
   };
 
   const handleDeleteCategory = async (categoryId: string, categoryName: string) => {
@@ -135,19 +195,55 @@ export const CategorySelect = ({
       return;
     }
 
-    const { error } = await supabase
-      .from("categories")
-      .delete()
-      .eq("id", categoryId);
+    try {
+      // Get authenticated user
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error("Not authenticated");
 
-    if (error) {
+      // Get user's app_users record
+      const { data: appUser } = await supabase
+        .from("app_users")
+        .select("id")
+        .eq("user_id", session.user.id)
+        .single();
+
+      if (!appUser) throw new Error("User profile not found");
+
+      // Get category details before deletion
+      const { data: categoryData } = await supabase
+        .from("categories")
+        .select("*")
+        .eq("id", categoryId)
+        .single();
+
+      // Log the action before deletion
+      await supabase.from("transactions").insert({
+        user_id: appUser.id,
+        action: "категория удалена",
+        category_name: categoryName,
+        quantity: 0,
+        details: categoryData ? {
+          critical_quantity: categoryData.critical_quantity,
+        } : null,
+      });
+
+      const { error } = await supabase
+        .from("categories")
+        .delete()
+        .eq("id", categoryId);
+
+      if (error) {
+        toast.error("Ошибка удаления категории");
+        console.error(error);
+        return;
+      }
+
+      toast.success("Категория удалена");
+      fetchCategories();
+    } catch (error) {
+      console.error("Error deleting category:", error);
       toast.error("Ошибка удаления категории");
-      console.error(error);
-      return;
     }
-
-    toast.success("Категория удалена");
-    fetchCategories();
   };
 
   const openCreateDialog = () => {

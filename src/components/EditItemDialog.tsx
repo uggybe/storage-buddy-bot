@@ -80,6 +80,20 @@ export const EditItemDialog = ({
     setIsLoading(true);
 
     try {
+      // Get authenticated user
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error("Not authenticated");
+
+      // Get user's app_users record
+      const { data: appUser } = await supabase
+        .from("app_users")
+        .select("id")
+        .eq("user_id", session.user.id)
+        .single();
+
+      if (!appUser) throw new Error("User profile not found");
+
+      // Update item
       const { error } = await supabase
         .from("items")
         .update({
@@ -95,6 +109,22 @@ export const EditItemDialog = ({
         .eq("id", item.id);
 
       if (error) throw error;
+
+      // Log the action
+      await supabase.from("transactions").insert({
+        item_id: item.id,
+        user_id: appUser.id,
+        action: "изменено",
+        quantity: formData.item_type === "единичный" ? 1 : formData.quantity,
+        item_name: formData.name,
+        category_name: formData.category,
+        details: {
+          model: formData.model,
+          warehouse: formData.warehouse,
+          item_type: formData.item_type,
+          location: formData.location,
+        },
+      });
 
       toast.success("Предмет обновлен");
       onSuccess();

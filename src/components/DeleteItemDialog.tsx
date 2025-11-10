@@ -23,6 +23,43 @@ export const DeleteItemDialog = ({
     setIsLoading(true);
 
     try {
+      // Get authenticated user
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error("Not authenticated");
+
+      // Get user's app_users record
+      const { data: appUser } = await supabase
+        .from("app_users")
+        .select("id")
+        .eq("user_id", session.user.id)
+        .single();
+
+      if (!appUser) throw new Error("User profile not found");
+
+      // Get item details before deletion
+      const { data: itemData } = await supabase
+        .from("items")
+        .select("*")
+        .eq("id", itemId)
+        .single();
+
+      // Log the action before deletion
+      await supabase.from("transactions").insert({
+        item_id: itemId,
+        user_id: appUser.id,
+        action: "удалено",
+        quantity: itemData?.quantity || 0,
+        item_name: itemName,
+        category_name: itemData?.category,
+        details: itemData ? {
+          model: itemData.model,
+          warehouse: itemData.warehouse,
+          item_type: itemData.item_type,
+          location: itemData.location,
+        } : null,
+      });
+
+      // Delete item
       const { error } = await supabase
         .from("items")
         .delete()
