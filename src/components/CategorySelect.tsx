@@ -29,6 +29,7 @@ export const CategorySelect = ({
   const [categories, setCategories] = useState<Category[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isManageDialogOpen, setIsManageDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -109,6 +110,7 @@ export const CategorySelect = ({
       onChange(newCategoryName.trim());
     }
 
+    setIsEditDialogOpen(false);
     setEditingCategory(null);
     setNewCategoryName("");
     setNewCriticalQuantity("0");
@@ -146,6 +148,7 @@ export const CategorySelect = ({
     setEditingCategory(category);
     setNewCategoryName(category.name);
     setNewCriticalQuantity(category.critical_quantity.toString());
+    setIsEditDialogOpen(true);
   };
 
   return (
@@ -264,80 +267,92 @@ export const CategorySelect = ({
 
       {/* Manage Categories Dialog */}
       <Dialog open={isManageDialogOpen} onOpenChange={setIsManageDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Управление категориями</DialogTitle>
           </DialogHeader>
-          <div className="space-y-2">
+          <div className="max-h-[60vh] overflow-y-auto space-y-2 pr-2">
             {categories.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
+              <p className="text-sm text-muted-foreground text-center py-8">
                 Нет категорий
               </p>
             ) : (
               categories.map((category) => (
                 <div
                   key={category.id}
-                  className="flex items-center justify-between p-3 border rounded-lg"
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
                 >
-                  {editingCategory?.id === category.id ? (
-                    <div className="flex-1 space-y-2">
-                      <Input
-                        value={newCategoryName}
-                        onChange={(e) => setNewCategoryName(e.target.value)}
-                        placeholder="Название категории"
-                        className="w-full"
-                      />
-                      <Input
-                        type="number"
-                        min="0"
-                        value={newCriticalQuantity}
-                        onChange={(e) => setNewCriticalQuantity(e.target.value)}
-                        placeholder="Минимальное количество"
-                        className="w-full"
-                      />
-                      <div className="flex gap-2">
-                        <Button size="sm" onClick={handleUpdateCategory}>
-                          Сохранить
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setEditingCategory(null)}
-                        >
-                          Отмена
-                        </Button>
-                      </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{category.name}</div>
+                    <div className="text-sm text-muted-foreground">
+                      Мин. количество: {category.critical_quantity === 0 ? "не установлено" : category.critical_quantity}
                     </div>
-                  ) : (
-                    <>
-                      <div className="flex-1">
-                        <div className="font-medium">{category.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          Минимальное количество: {category.critical_quantity === 0 ? "не установлено" : category.critical_quantity}
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => openEditDialog(category)}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDeleteCategory(category.id, category.name)}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </div>
-                    </>
-                  )}
+                  </div>
+                  <div className="flex gap-1 flex-shrink-0">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => openEditDialog(category)}
+                      title="Редактировать"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleDeleteCategory(category.id, category.name)}
+                      title="Удалить"
+                    >
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                    </Button>
+                  </div>
                 </div>
               ))
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Category Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Редактировать категорию</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-category-name">Название категории *</Label>
+              <Input
+                id="edit-category-name"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="Например: Инструменты"
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-critical-quantity">Минимальное количество *</Label>
+              <Input
+                id="edit-critical-quantity"
+                type="number"
+                min="0"
+                value={newCriticalQuantity}
+                onChange={(e) => setNewCriticalQuantity(e.target.value)}
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground">
+                Все множественные предметы этой категории будут иметь это минимальное количество. Укажите 0 для отключения предупреждения.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Отмена
+            </Button>
+            <Button onClick={handleUpdateCategory}>
+              Сохранить
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
