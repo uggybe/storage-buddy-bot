@@ -87,7 +87,9 @@ const Inventory = () => {
       }
     });
 
-    // Subscribe to real-time changes on items and transactions tables
+    // Real-time subscriptions disabled due to errors
+    // TODO: Re-enable after fixing Realtime configuration
+    /*
     const itemsChannel = supabase
       .channel('database-changes')
       .on(
@@ -123,10 +125,11 @@ const Inventory = () => {
           toast.error('Ошибка подключения к real-time обновлениям');
         }
       });
+    */
 
     return () => {
       subscription.unsubscribe();
-      supabase.removeChannel(itemsChannel);
+      // supabase.removeChannel(itemsChannel); // Disabled with realtime
     };
   }, [navigate]);
 
