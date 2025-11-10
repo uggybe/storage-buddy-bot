@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Package, AlertTriangle, Edit, Trash2 } from "lucide-react";
+import { Package, AlertTriangle, Edit, Trash2, Paperclip } from "lucide-react";
 import { TakeItemDialog } from "./TakeItemDialog";
 import { ReturnItemDialog } from "./ReturnItemDialog";
 import { EditItemDialog } from "./EditItemDialog";
@@ -170,67 +170,54 @@ export const ItemCard = ({
     <>
       <Card className={`${getBorderColor()} cursor-pointer transition-all`} onClick={() => setIsExpanded(!isExpanded)}>
         <CardHeader className="py-2 px-3">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               <CardTitle className="text-base leading-tight truncate">{item.name}</CardTitle>
+              {item.model && (
+                <p className="text-xs text-muted-foreground truncate mt-0.5">{item.model}</p>
+              )}
             </div>
 
-            {/* Количество справа - крупно в маленьком блоке */}
-            {!isExpanded && (
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {item.item_type === "множественный" && (
-                  <span className="text-2xl font-bold tabular-nums">
-                    {item.quantity === 0 ? (
-                      <span className="text-red-600">0</span>
-                    ) : (
-                      <span>{item.quantity}</span>
-                    )}
-                  </span>
-                )}
-                {/* Для единичных - компактно показать статус */}
-                {item.item_type === "единичный" && item.current_user_id && currentUser && (
-                  <span className="text-sm font-medium text-yellow-700">
-                    {item.current_user_id === currentUserId ? "Взят" : currentUser.name.split(' ')[0]}
-                  </span>
-                )}
-              </div>
-            )}
-
-            {/* Количество справа - крупно в большом блоке */}
-            {isExpanded && item.item_type === "множественный" && (
-              <span className="text-2xl font-bold tabular-nums">
-                {item.quantity === 0 ? (
-                  <span className="text-red-600">0</span>
-                ) : (
-                  <span>{item.quantity}</span>
-                )}
-              </span>
-            )}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Количество или статус */}
+              {item.item_type === "множественный" && (
+                <span className="text-lg font-bold tabular-nums">
+                  {item.quantity === 0 ? (
+                    <span className="text-red-600">0</span>
+                  ) : (
+                    <span>{item.quantity}</span>
+                  )}
+                </span>
+              )}
+              {item.item_type === "единичный" && item.current_user_id && currentUser && (
+                <span className="text-lg font-medium text-yellow-700">
+                  {item.current_user_id === currentUserId ? "Взят" : currentUser.name.split(' ')[0]}
+                </span>
+              )}
+              {/* Кнопка редактирования */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 flex-shrink-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditDialogOpen(true);
+                }}
+              >
+                <Edit className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
         </CardHeader>
 
         {isExpanded && (
           <>
             <CardContent className="space-y-1.5 py-2 px-3">
-              {/* Модель */}
-              {item.model && (
-                <p className="text-xs text-muted-foreground">{item.model}</p>
-              )}
-
-              {/* Badges */}
+              {/* Badges - ближе к названию */}
               <div className="flex flex-wrap gap-1.5">
                 <Badge variant="secondary" className="text-xs px-2 py-0">{item.category}</Badge>
                 <Badge variant="outline" className="text-xs px-2 py-0">{item.warehouse}</Badge>
               </div>
-
-              {item.item_type === "множественный" && (
-                <div className="flex items-center gap-1.5">
-                  <Package className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-xs">
-                    Количество: <span className="font-semibold">{item.quantity}</span>
-                  </span>
-                </div>
-              )}
 
               {isLowStock && (
                 <div className="flex items-center gap-1.5 text-yellow-600">
@@ -294,14 +281,14 @@ export const ItemCard = ({
                       Вернуть
                     </Button>
                   )}
-                  {/* Edit button in expanded view */}
+                  {/* Photo attachment button */}
                   <Button
                     variant="outline"
                     size="icon"
                     className="h-9 w-9"
-                    onClick={() => setIsEditDialogOpen(true)}
+                    onClick={() => toast.info("Функция прикрепления фото в разработке")}
                   >
-                    <Edit className="h-4 w-4" />
+                    <Paperclip className="h-4 w-4" />
                   </Button>
                   {/* Delete button in expanded view */}
                   <Button
@@ -332,14 +319,14 @@ export const ItemCard = ({
                   >
                     Добавить
                   </Button>
-                  {/* Edit button in expanded view */}
+                  {/* Photo attachment button */}
                   <Button
                     variant="outline"
                     size="icon"
                     className="h-9 w-9"
-                    onClick={() => setIsEditDialogOpen(true)}
+                    onClick={() => toast.info("Функция прикрепления фото в разработке")}
                   >
-                    <Edit className="h-4 w-4" />
+                    <Paperclip className="h-4 w-4" />
                   </Button>
                   {/* Delete button in expanded view */}
                   <Button
