@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Smartphone } from "lucide-react";
+import { ArrowLeft, Download } from "lucide-react";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 
@@ -150,21 +150,6 @@ const TransactionLog = () => {
     return `${csvHeaders}\n${csvRows}`;
   };
 
-  const addToHomeScreen = () => {
-    try {
-      const telegramWebApp = (window as any).Telegram?.WebApp;
-      if (telegramWebApp?.addToHomeScreen) {
-        telegramWebApp.addToHomeScreen();
-        toast.success("Следуйте инструкциям для добавления иконки");
-      } else {
-        toast.error("Функция недоступна в этой версии Telegram");
-      }
-    } catch (error) {
-      console.error("Error adding to home screen:", error);
-      toast.error("Ошибка добавления иконки");
-    }
-  };
-
   const exportToExcel = async () => {
     try {
       toast.info("Подготовка файла...");
@@ -249,15 +234,6 @@ const TransactionLog = () => {
               <h1 className="text-lg sm:text-xl font-semibold truncate">Журнал событий</h1>
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={addToHomeScreen}
-                className="flex items-center gap-2"
-                title="Добавить на главный экран"
-              >
-                <Smartphone className="h-4 w-4" />
-              </Button>
               <Button
                 variant="outline"
                 size="sm"
