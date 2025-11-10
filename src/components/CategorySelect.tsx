@@ -40,13 +40,24 @@ export const CategorySelect = ({
   }, []);
 
   const fetchCategories = async () => {
-    const { data } = await supabase
-      .from("categories")
-      .select("*")
-      .order("name");
+    try {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("*")
+        .order("name");
 
-    if (data) {
-      setCategories(data);
+      if (error) {
+        console.error("Error fetching categories:", error);
+        toast.error(`Ошибка загрузки категорий: ${error.message}`);
+        return;
+      }
+
+      console.log("Fetched categories:", data);
+      if (data) {
+        setCategories(data);
+      }
+    } catch (err) {
+      console.error("Unexpected error fetching categories:", err);
     }
   };
 
@@ -63,6 +74,8 @@ export const CategorySelect = ({
 
     const criticalQty = parseInt(newCriticalQuantity) || 0;
 
+    console.log("Creating category:", newCategoryName.trim(), criticalQty);
+
     const { error } = await supabase
       .from("categories")
       .insert({
@@ -71,8 +84,8 @@ export const CategorySelect = ({
       });
 
     if (error) {
-      toast.error("Ошибка создания категории");
-      console.error(error);
+      console.error("Category creation error:", error);
+      toast.error(`Ошибка создания категории: ${error.message}`);
       return;
     }
 
@@ -167,7 +180,7 @@ export const CategorySelect = ({
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-[min(400px,90vw)] p-0" align="start" sideOffset={2} avoidCollisions={false}>
+          <PopoverContent className="w-[min(400px,90vw)] p-0" align="start" sideOffset={4}>
             <Command>
               <CommandInput placeholder="Поиск категории..." />
               <CommandList>
