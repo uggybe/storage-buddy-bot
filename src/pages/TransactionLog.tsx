@@ -154,6 +154,15 @@ const TransactionLog = () => {
     try {
       toast.info("Подготовка файла...");
 
+      // Get Telegram user ID
+      const telegramWebApp = (window as any).Telegram?.WebApp;
+      const chatId = telegramWebApp?.initDataUnsafe?.user?.id;
+
+      if (!chatId) {
+        toast.error("Не удалось получить ID пользователя Telegram");
+        return;
+      }
+
       // Fetch all transactions (not just 100)
       const { data, error } = await supabase
         .from("transactions")
@@ -186,22 +195,30 @@ const TransactionLog = () => {
       // Generate filename with current date
       const fileName = `Журнал_событий_${new Date().toISOString().split('T')[0]}.csv`;
 
-      // Create data URL
-      const dataUrl = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+      toast.info("Отправка файла в Telegram...");
 
-      // Download file
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = fileName;
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Send file via Telegram bot
+      const response = await supabase.functions.invoke('send-telegram-file', {
+        body: {
+          chatId,
+          csvData: csv,
+          fileName,
+        },
+      });
 
-      toast.success("Файл скачан!");
-    } catch (error) {
+      if (response.error) {
+        console.error("Function error:", response.error);
+        throw new Error(response.error.message || "Ошибка вызова функции");
+      }
+
+      if (response.data && !response.data.success) {
+        throw new Error(response.data.error || "Ошибка отправки файла");
+      }
+
+      toast.success("Файл отправлен в Telegram!");
+    } catch (error: any) {
       console.error("Error exporting:", error);
-      toast.error("Ошибка экспорта файла");
+      toast.error("Ошибка экспорта файла: " + (error.message || "Неизвестная ошибка"));
     }
   };
 
