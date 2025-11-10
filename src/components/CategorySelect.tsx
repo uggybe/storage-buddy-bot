@@ -167,7 +167,7 @@ export const CategorySelect = ({
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-[400px] p-0" align="start" sideOffset={4}>
+          <PopoverContent className="w-[min(400px,90vw)] p-0" align="start" sideOffset={2} avoidCollisions={false}>
             <Command>
               <CommandInput placeholder="Поиск категории..." />
               <CommandList>
@@ -224,7 +224,7 @@ export const CategorySelect = ({
 
       {/* Create Category Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Создать новую категорию</DialogTitle>
           </DialogHeader>
@@ -315,7 +315,7 @@ export const CategorySelect = ({
 
       {/* Edit Category Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Редактировать категорию</DialogTitle>
           </DialogHeader>

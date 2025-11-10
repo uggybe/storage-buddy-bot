@@ -101,7 +101,7 @@ export const TakeItemDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>Взять: {item.name}</DialogTitle>
         </DialogHeader>
