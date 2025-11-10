@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CategorySelect } from "./CategorySelect";
+import { WarehouseSelect } from "./WarehouseSelect";
 
 type Item = {
   id: string;
@@ -146,8 +147,8 @@ export const EditItemDialog = ({
         <DialogHeader>
           <DialogTitle>Редактировать предмет</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="space-y-1.5">
             <Label htmlFor="edit-name">Название *</Label>
             <Input
               id="edit-name"
@@ -159,7 +160,7 @@ export const EditItemDialog = ({
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="edit-model">Модель *</Label>
             <Input
               id="edit-model"
@@ -172,7 +173,7 @@ export const EditItemDialog = ({
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label>Категория *</Label>
             <CategorySelect
               value={formData.category}
@@ -181,25 +182,16 @@ export const EditItemDialog = ({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="edit-warehouse">Склад *</Label>
-            <Select
+          <div className="space-y-1.5">
+            <Label>Склад *</Label>
+            <WarehouseSelect
               value={formData.warehouse}
-              onValueChange={(value) => setFormData({ ...formData, warehouse: value })}
+              onChange={(value) => setFormData({ ...formData, warehouse: value })}
               disabled={isLoading}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Мастерская">Мастерская</SelectItem>
-                <SelectItem value="Холодный">Холодный</SelectItem>
-                <SelectItem value="Теплый">Теплый</SelectItem>
-              </SelectContent>
-            </Select>
+            />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="edit-item-type">Тип предмета *</Label>
             <Select
               value={formData.item_type}
@@ -217,7 +209,7 @@ export const EditItemDialog = ({
           </div>
 
           {formData.item_type === "множественный" && (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="edit-quantity">Количество</Label>
               <Input
                 id="edit-quantity"
@@ -239,7 +231,7 @@ export const EditItemDialog = ({
             </div>
           )}
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="edit-location">Местоположение *</Label>
             <Input
               id="edit-location"
@@ -252,7 +244,7 @@ export const EditItemDialog = ({
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="edit-notes">Примечания</Label>
             <Textarea
               id="edit-notes"
