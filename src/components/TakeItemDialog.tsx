@@ -32,6 +32,12 @@ export const TakeItemDialog = ({
   const [quantity, setQuantity] = useState(1);
   const [purpose, setPurpose] = useState("");
 
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    // Prevent scroll on focus to avoid layout jumping
+    e.preventDefault();
+    e.target.focus({ preventScroll: true });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -101,7 +107,7 @@ export const TakeItemDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-sm" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Взять: {item.name}</DialogTitle>
         </DialogHeader>
@@ -127,6 +133,7 @@ export const TakeItemDialog = ({
                   const numValue = parseInt(value) || 1;
                   setQuantity(Math.min(Math.max(numValue, 1), item.quantity));
                 }}
+                onFocus={handleInputFocus}
                 disabled={isLoading}
               />
               <p className="text-xs text-muted-foreground">
@@ -141,6 +148,7 @@ export const TakeItemDialog = ({
               id="purpose"
               value={purpose}
               onChange={(e) => setPurpose(e.target.value)}
+              onFocus={handleInputFocus}
               disabled={isLoading}
               rows={3}
               placeholder="Для чего берете предмет?"

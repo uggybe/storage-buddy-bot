@@ -164,6 +164,12 @@ export const CategorySelect = ({
     setIsEditDialogOpen(true);
   };
 
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    // Prevent scroll on focus to avoid layout jumping
+    e.preventDefault();
+    e.target.focus({ preventScroll: true });
+  };
+
   return (
     <>
       <div className="flex gap-2">
@@ -180,7 +186,7 @@ export const CategorySelect = ({
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-[min(400px,90vw)] p-0" align="start" sideOffset={4}>
+          <PopoverContent className="w-[min(400px,90vw)] p-0" align="start" sideOffset={4} onOpenAutoFocus={(e) => e.preventDefault()}>
             <Command>
               <CommandInput placeholder="Поиск категории..." />
               <CommandList>
@@ -237,7 +243,7 @@ export const CategorySelect = ({
 
       {/* Create Category Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>Создать новую категорию</DialogTitle>
           </DialogHeader>
@@ -248,6 +254,7 @@ export const CategorySelect = ({
                 id="new-category-name"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
+                onFocus={handleInputFocus}
                 placeholder="Например: Инструменты"
                 className="w-full"
               />
@@ -264,6 +271,7 @@ export const CategorySelect = ({
                   const value = e.target.value.replace(/[^0-9]/g, '');
                   setNewCriticalQuantity(value || '0');
                 }}
+                onFocus={handleInputFocus}
                 className="w-full"
               />
               <p className="text-xs text-muted-foreground">
@@ -284,7 +292,7 @@ export const CategorySelect = ({
 
       {/* Manage Categories Dialog */}
       <Dialog open={isManageDialogOpen} onOpenChange={setIsManageDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>Управление категориями</DialogTitle>
           </DialogHeader>
@@ -332,7 +340,7 @@ export const CategorySelect = ({
 
       {/* Edit Category Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>Редактировать категорию</DialogTitle>
           </DialogHeader>
@@ -343,6 +351,7 @@ export const CategorySelect = ({
                 id="edit-category-name"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
+                onFocus={handleInputFocus}
                 placeholder="Например: Инструменты"
                 className="w-full"
               />
@@ -359,6 +368,7 @@ export const CategorySelect = ({
                   const value = e.target.value.replace(/[^0-9]/g, '');
                   setNewCriticalQuantity(value || '0');
                 }}
+                onFocus={handleInputFocus}
                 className="w-full"
               />
               <p className="text-xs text-muted-foreground">
