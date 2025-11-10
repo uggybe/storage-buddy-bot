@@ -154,15 +154,6 @@ const TransactionLog = () => {
     try {
       toast.info("Подготовка файла...");
 
-      // Get Telegram user ID
-      const telegramWebApp = (window as any).Telegram?.WebApp;
-      const chatId = telegramWebApp?.initDataUnsafe?.user?.id;
-
-      if (!chatId) {
-        toast.error("Не удалось получить ID пользователя Telegram");
-        return;
-      }
-
       // Fetch all transactions (not just 100)
       const { data, error } = await supabase
         .from("transactions")
@@ -195,22 +186,19 @@ const TransactionLog = () => {
       // Generate filename with current date
       const fileName = `Журнал_событий_${new Date().toISOString().split('T')[0]}.csv`;
 
-      toast.info("Отправка файла в Telegram...");
+      // Create data URL
+      const dataUrl = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
 
-      // Send file via Telegram bot
-      const response = await supabase.functions.invoke('send-telegram-file', {
-        body: {
-          chatId,
-          csvData: csv,
-          fileName,
-        },
-      });
+      // Download file
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = fileName;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
 
-      if (response.error) {
-        throw response.error;
-      }
-
-      toast.success("Файл отправлен в Telegram!");
+      toast.success("Файл скачан!");
     } catch (error) {
       console.error("Error exporting:", error);
       toast.error("Ошибка экспорта файла");
