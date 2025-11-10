@@ -103,7 +103,7 @@ export const EditItemDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md max-h-[75vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Редактировать предмет</DialogTitle>
         </DialogHeader>

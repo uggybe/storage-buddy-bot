@@ -169,7 +169,7 @@ export const ItemCard = ({
   return (
     <>
       <Card className={`${getBorderColor()} cursor-pointer min-h-[100px] transition-all`} onClick={() => setIsExpanded(!isExpanded)}>
-        <CardHeader className="py-3 px-4">
+        <CardHeader className="py-2 px-4">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               <CardTitle className="text-base leading-tight">{item.name}</CardTitle>
@@ -219,7 +219,7 @@ export const ItemCard = ({
 
         {isExpanded && (
           <>
-            <CardContent className="space-y-1.5 py-2 px-4">
+            <CardContent className="space-y-1.5 py-1 px-4">
               {item.item_type === "множественный" && item.quantity > 0 && (
                 <div className="flex items-center gap-1.5">
                   <Package className="h-3.5 w-3.5 text-muted-foreground" />
@@ -267,7 +267,7 @@ export const ItemCard = ({
               )}
             </CardContent>
 
-            <CardFooter className="gap-2 py-2 px-4" onClick={(e) => e.stopPropagation()}>
+            <CardFooter className="gap-2 py-1.5 px-4" onClick={(e) => e.stopPropagation()}>
               {/* For single items: show buttons based on current_user_id */}
               {item.item_type === "единичный" ? (
                 <>
