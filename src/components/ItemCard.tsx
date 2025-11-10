@@ -8,6 +8,7 @@ import { ReturnItemDialog } from "./ReturnItemDialog";
 import { EditItemDialog } from "./EditItemDialog";
 import { DeleteItemDialog } from "./DeleteItemDialog";
 import { AddQuantityDialog } from "./AddQuantityDialog";
+import { PhotoDialog } from "./PhotoDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -23,6 +24,7 @@ type Item = {
   current_user_id: string | null;
   location: string | null;
   notes: string | null;
+  photos?: string[];
 };
 
 type AppUser = {
@@ -56,6 +58,7 @@ export const ItemCard = ({
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isPhotoDialogOpen, setIsPhotoDialogOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [purpose, setPurpose] = useState<string | null>(null);
@@ -285,10 +288,16 @@ export const ItemCard = ({
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-9 w-9"
-                    onClick={() => toast.info("Функция прикрепления фото в разработке")}
+                    className="h-9 w-9 relative"
+                    onClick={() => setIsPhotoDialogOpen(true)}
+                    title="Фотографии предмета"
                   >
                     <Paperclip className="h-4 w-4" />
+                    {item.photos && item.photos.length > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                        {item.photos.length}
+                      </span>
+                    )}
                   </Button>
                   {/* Delete button in expanded view */}
                   <Button
@@ -323,10 +332,16 @@ export const ItemCard = ({
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-9 w-9"
-                    onClick={() => toast.info("Функция прикрепления фото в разработке")}
+                    className="h-9 w-9 relative"
+                    onClick={() => setIsPhotoDialogOpen(true)}
+                    title="Фотографии предмета"
                   >
                     <Paperclip className="h-4 w-4" />
+                    {item.photos && item.photos.length > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                        {item.photos.length}
+                      </span>
+                    )}
                   </Button>
                   {/* Delete button in expanded view */}
                   <Button
@@ -378,6 +393,13 @@ export const ItemCard = ({
       <AddQuantityDialog
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
+        item={item}
+        onSuccess={onUpdate}
+      />
+
+      <PhotoDialog
+        open={isPhotoDialogOpen}
+        onOpenChange={setIsPhotoDialogOpen}
         item={item}
         onSuccess={onUpdate}
       />
