@@ -31,6 +31,12 @@ export const AddItemDialog = ({
     notes: "",
   });
 
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    // Prevent scroll on focus to avoid layout jumping
+    e.preventDefault();
+    e.target.focus({ preventScroll: true });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -80,7 +86,7 @@ export const AddItemDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Добавить предмет</DialogTitle>
         </DialogHeader>
@@ -91,6 +97,7 @@ export const AddItemDialog = ({
               id="name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onFocus={handleInputFocus}
               disabled={isLoading}
               className="w-full"
             />
@@ -102,6 +109,7 @@ export const AddItemDialog = ({
               id="model"
               value={formData.model}
               onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+              onFocus={handleInputFocus}
               disabled={isLoading}
               placeholder="Например: iPhone 13 Pro"
               className="w-full"
@@ -157,10 +165,15 @@ export const AddItemDialog = ({
               <Label htmlFor="quantity">Количество</Label>
               <Input
                 id="quantity"
-                type="number"
-                min="0"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9]/g, '');
+                  setFormData({ ...formData, quantity: parseInt(value) || 0 });
+                }}
+                onFocus={handleInputFocus}
                 disabled={isLoading}
                 className="w-full"
               />
@@ -176,6 +189,7 @@ export const AddItemDialog = ({
               id="location"
               value={formData.location}
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              onFocus={handleInputFocus}
               disabled={isLoading}
               placeholder="Например: Полка 3, ряд 2"
               className="w-full"
@@ -188,6 +202,7 @@ export const AddItemDialog = ({
               id="notes"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              onFocus={handleInputFocus}
               disabled={isLoading}
               rows={3}
               className="w-full"

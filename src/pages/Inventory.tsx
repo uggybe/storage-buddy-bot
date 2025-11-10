@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, History } from "lucide-react";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 import { ItemCard } from "@/components/ItemCard";
@@ -172,7 +172,17 @@ const Inventory = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <img src={logo} alt="ЦЭПП Services" className="h-10" />
-            <span className="text-sm text-muted-foreground">{userName}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">{userName}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate("/log")}
+                title="Журнал событий"
+              >
+                <History className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </header>

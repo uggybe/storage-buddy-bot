@@ -35,6 +35,12 @@ export const ReturnItemDialog = ({
   const [warehouse, setWarehouse] = useState(item.warehouse);
   const [locationDetails, setLocationDetails] = useState(item.location || "");
 
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    // Prevent scroll on focus to avoid layout jumping
+    e.preventDefault();
+    e.target.focus({ preventScroll: true });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -109,7 +115,7 @@ export const ReturnItemDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-sm" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Вернуть: {item.name}</DialogTitle>
         </DialogHeader>
@@ -119,10 +125,15 @@ export const ReturnItemDialog = ({
               <Label htmlFor="return-quantity">Количество</Label>
               <Input
                 id="return-quantity"
-                type="number"
-                min="1"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={quantity}
-                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9]/g, '');
+                  setQuantity(parseInt(value) || 1);
+                }}
+                onFocus={handleInputFocus}
                 disabled={isLoading}
               />
             </div>
@@ -152,6 +163,7 @@ export const ReturnItemDialog = ({
               id="location"
               value={locationDetails}
               onChange={(e) => setLocationDetails(e.target.value)}
+              onFocus={handleInputFocus}
               disabled={isLoading}
               rows={3}
               placeholder="Укажите точное местоположение на складе"

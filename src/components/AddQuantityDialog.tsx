@@ -37,6 +37,12 @@ export const AddQuantityDialog = ({
     }
   }, [open, item.location]);
 
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    // Prevent scroll on focus to avoid layout jumping
+    e.preventDefault();
+    e.target.focus({ preventScroll: true });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -75,7 +81,7 @@ export const AddQuantityDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-sm" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Пополнить: {item.name}</DialogTitle>
         </DialogHeader>
@@ -84,10 +90,15 @@ export const AddQuantityDialog = ({
             <Label htmlFor="add-quantity">Количество для добавления</Label>
             <Input
               id="add-quantity"
-              type="number"
-              min="1"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={quantity}
-              onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^0-9]/g, '');
+                setQuantity(parseInt(value) || 1);
+              }}
+              onFocus={handleInputFocus}
               disabled={isLoading}
             />
             <p className="text-xs text-muted-foreground">
@@ -118,9 +129,9 @@ export const AddQuantityDialog = ({
                 id="add-location"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
+                onFocus={handleInputFocus}
                 disabled={isLoading}
                 placeholder="Например: Полка 3, ряд 2"
-                autoFocus
               />
             ) : (
               <div className="p-2 bg-gray-50 border border-gray-200 rounded-md">
