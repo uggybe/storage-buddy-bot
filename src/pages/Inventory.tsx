@@ -281,8 +281,7 @@ const Inventory = () => {
               </Select>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Сортировка:</span>
+            <div className="flex items-center justify-center gap-2">
               <Button
                 variant={sortOrder === "desc" ? "default" : "outline"}
                 size="sm"
