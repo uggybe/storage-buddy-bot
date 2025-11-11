@@ -207,10 +207,13 @@ const Inventory = () => {
           <div className="flex items-center justify-between gap-2">
             <img src={logo} alt="ЦЭПП Services" className="h-10" />
             <div className="flex items-center gap-1.5 flex-shrink-0">
-              <div className="flex flex-col items-end text-xs text-muted-foreground leading-tight">
-                {userLastName && <span className="truncate max-w-[100px]">{userLastName}</span>}
-                {userFirstName && <span className="truncate max-w-[100px]">{userFirstName}</span>}
-              </div>
+              {(userLastName || userFirstName) && (
+                <div className="flex flex-col items-end text-xs text-muted-foreground leading-tight min-w-0">
+                  {userLastName && <span className="truncate max-w-[120px]">{userLastName}</span>}
+                  {userFirstName && <span className="truncate max-w-[120px]">{userFirstName}</span>}
+                  {!userLastName && !userFirstName && <span className="truncate max-w-[120px]">Пользователь</span>}
+                </div>
+              )}
               <Button
                 variant="ghost"
                 size="sm"

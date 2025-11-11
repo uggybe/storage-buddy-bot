@@ -24,6 +24,8 @@ export const AutocompleteInput = ({
 }: AutocompleteInputProps) => {
   const [suggestion, setSuggestion] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const measureRef = useRef<HTMLSpanElement>(null);
+  const [textWidth, setTextWidth] = useState(0);
 
   // Find matching suggestion
   useEffect(() => {
@@ -37,26 +39,43 @@ export const AutocompleteInput = ({
     }
   }, [value, suggestions]);
 
+  // Measure text width
+  useEffect(() => {
+    if (measureRef.current && value) {
+      setTextWidth(measureRef.current.offsetWidth);
+    } else {
+      setTextWidth(0);
+    }
+  }, [value]);
+
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    // Accept suggestion on Tab or ArrowRight at end of input
-    if ((e.key === "Tab" || e.key === "ArrowRight") && suggestion && inputRef.current) {
-      const cursorAtEnd = inputRef.current.selectionStart === value.length;
-      if (cursorAtEnd) {
-        e.preventDefault();
-        onChange(suggestion);
-        setSuggestion("");
-      }
+    // Accept suggestion on Tab or ArrowRight
+    if ((e.key === "Tab" || e.key === "ArrowRight") && suggestion) {
+      e.preventDefault();
+      onChange(suggestion);
+      setSuggestion("");
     }
   };
 
   return (
     <div className="relative">
+      {/* Hidden span to measure text width */}
+      <span
+        ref={measureRef}
+        className="absolute invisible whitespace-pre text-sm px-3"
+        style={{ font: "inherit" }}
+      >
+        {value}
+      </span>
+
       {/* Suggestion overlay */}
-      {suggestion && (
-        <div className="absolute inset-0 pointer-events-none flex items-center px-3">
-          <span className="text-muted-foreground/40" style={{ paddingLeft: `${value.length * 0.55}em` }}>
-            {suggestion.slice(value.length)}
-          </span>
+      {suggestion && value && (
+        <div className="absolute inset-0 pointer-events-none flex items-center">
+          <div className="px-3 text-sm" style={{ paddingLeft: `calc(0.75rem + ${textWidth}px)` }}>
+            <span className="text-muted-foreground/50">
+              {suggestion.slice(value.length)}
+            </span>
+          </div>
         </div>
       )}
 
