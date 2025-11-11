@@ -309,10 +309,17 @@ const TransactionLog = () => {
       const chatId = telegramWebApp?.initDataUnsafe?.user?.id;
       const isInTelegram = !!telegramWebApp && telegramWebApp.platform !== 'unknown';
 
-      console.log('Telegram context:', { chatId, platform: telegramWebApp?.platform, isInTelegram });
+      console.log('Export Debug:', {
+        hasTelegramObject: !!(window as any).Telegram,
+        hasWebApp: !!telegramWebApp,
+        chatId,
+        platform: telegramWebApp?.platform,
+        isInTelegram,
+        initDataUnsafe: telegramWebApp?.initDataUnsafe
+      });
 
-      // If in Telegram, send via bot
-      if (isInTelegram && chatId) {
+      // Try to send via Telegram if we have chatId (regardless of isInTelegram)
+      if (chatId) {
         toast.info("Отправка файла в Telegram...");
 
         try {
@@ -336,6 +343,9 @@ const TransactionLog = () => {
           // Fallback to download if Telegram send fails
           toast.info("Попытка обычного скачивания...");
         }
+      } else {
+        console.log("No chatId found, skipping Telegram send");
+        toast.info("Telegram не обнаружен, скачиваем файл локально...");
       }
 
       // Fallback: normal download (for desktop or if Telegram send failed)
@@ -354,7 +364,13 @@ const TransactionLog = () => {
         URL.revokeObjectURL(url);
       }, 100);
 
-      toast.success("Файл скачан!");
+      // Check if mobile device
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      if (isMobile) {
+        toast.success("📱 Файл сохранен в Downloads");
+      } else {
+        toast.success("Файл скачан!");
+      }
     } catch (error: any) {
       console.error("Error exporting:", error);
       toast.error("Ошибка экспорта файла: " + (error.message || "Неизвестная ошибка"));
