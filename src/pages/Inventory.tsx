@@ -68,31 +68,27 @@ const Inventory = () => {
       }
 
       // Get user's name from whitelist table
-      const telegramId = session.user.user_metadata?.telegram_id;
+      const { data: whitelistData } = await supabase
+        .from('whitelist')
+        .select('name')
+        .eq('telegram_id', telegramId)
+        .single();
 
-      if (telegramId) {
-        const { data: whitelistData } = await supabase
-          .from('whitelist')
-          .select('name')
-          .eq('telegram_id', telegramId)
-          .single();
+      const fullName = whitelistData?.name || '';
 
-        const fullName = whitelistData?.name || '';
-
-        if (fullName) {
-          // Split name by space: first word = last name, rest = first name
-          const nameParts = fullName.split(' ');
-          if (nameParts.length > 1) {
-            setUserLastName(nameParts[0]);
-            setUserFirstName(nameParts.slice(1).join(' '));
-          } else {
-            setUserFirstName(fullName);
-            setUserLastName('');
-          }
+      if (fullName) {
+        // Split name by space: first word = last name, rest = first name
+        const nameParts = fullName.split(' ');
+        if (nameParts.length > 1) {
+          setUserLastName(nameParts[0]);
+          setUserFirstName(nameParts.slice(1).join(' '));
         } else {
-          setUserFirstName('');
+          setUserFirstName(fullName);
           setUserLastName('');
         }
+      } else {
+        setUserFirstName('');
+        setUserLastName('');
       }
 
       fetchWarehouses();
