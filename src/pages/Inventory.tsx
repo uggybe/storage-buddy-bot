@@ -208,18 +208,25 @@ const Inventory = () => {
             <img src={logo} alt="ЦЭПП Services" className="h-10" />
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <div className="flex flex-col items-end text-xs text-muted-foreground leading-tight min-w-0">
-                {userLastName.trim() && userFirstName.trim() ? (
-                  <>
-                    <span className="truncate max-w-[120px]">{userLastName}</span>
-                    <span className="truncate max-w-[120px]">{userFirstName}</span>
-                  </>
-                ) : userLastName.trim() ? (
-                  <span className="truncate max-w-[120px]">{userLastName}</span>
-                ) : userFirstName.trim() ? (
-                  <span className="truncate max-w-[120px]">{userFirstName}</span>
-                ) : (
-                  <span className="truncate max-w-[120px]">Пользователь</span>
-                )}
+                {(() => {
+                  const hasLastName = userLastName && userLastName.trim().length > 0;
+                  const hasFirstName = userFirstName && userFirstName.trim().length > 0;
+
+                  if (hasLastName && hasFirstName) {
+                    return (
+                      <>
+                        <span className="truncate max-w-[120px]">{userLastName}</span>
+                        <span className="truncate max-w-[120px]">{userFirstName}</span>
+                      </>
+                    );
+                  } else if (hasLastName) {
+                    return <span className="truncate max-w-[120px]">{userLastName}</span>;
+                  } else if (hasFirstName) {
+                    return <span className="truncate max-w-[120px]">{userFirstName}</span>;
+                  } else {
+                    return <span className="truncate max-w-[120px]">Пользователь</span>;
+                  }
+                })()}
               </div>
               <Button
                 variant="ghost"
