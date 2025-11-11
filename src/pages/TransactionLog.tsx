@@ -130,6 +130,10 @@ const TransactionLog = () => {
   const renderQuantityChange = (details: any, quantity: number, action: string) => {
     const oldQty = details?.old_quantity;
     const newQty = details?.new_quantity;
+    const itemType = details?.item_type;
+
+    // Don't show quantity changes for single items
+    if (itemType === "единичный") return null;
 
     if (oldQty === undefined || newQty === undefined) return null;
 
@@ -251,8 +255,9 @@ const TransactionLog = () => {
       const csvData = (data || []).map((t: Transaction) => {
         let detailsText = '';
 
-        // Add quantity changes
-        if (t.details?.old_quantity !== undefined && t.details?.new_quantity !== undefined) {
+        // Add quantity changes (only for multiple items)
+        const isMultipleItem = t.details?.item_type === "множественный";
+        if (isMultipleItem && t.details?.old_quantity !== undefined && t.details?.new_quantity !== undefined) {
           if (t.action === "взято") {
             detailsText += `Было ${t.details.old_quantity} → убрал ${t.quantity} → стало ${t.details.new_quantity}`;
           } else if (t.action === "возвращено") {
