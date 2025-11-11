@@ -153,41 +153,45 @@ export const AddItemDialog = ({
         <form onSubmit={handleSubmit} className="space-y-2">
           <div className="space-y-1.5">
             <Label htmlFor="name">Название *</Label>
-            <Input
-              id="name"
-              list="names-list"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              onFocus={handleInputFocus}
-              disabled={isLoading}
-              className="w-full"
-              autoComplete="off"
-            />
-            <datalist id="names-list">
-              {existingNames.map((name, index) => (
-                <option key={index} value={name} />
-              ))}
-            </datalist>
+            <div className="relative">
+              <Input
+                id="name"
+                list="names-list"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onFocus={handleInputFocus}
+                disabled={isLoading}
+                className="w-full pr-8"
+                autoComplete="off"
+              />
+              <datalist id="names-list">
+                {existingNames.map((name, index) => (
+                  <option key={index} value={name} />
+                ))}
+              </datalist>
+            </div>
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="model">Модель *</Label>
-            <Input
-              id="model"
-              list="models-list"
-              value={formData.model}
-              onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-              onFocus={handleInputFocus}
-              disabled={isLoading}
-              placeholder="Например: iPhone 13 Pro"
-              className="w-full"
-              autoComplete="off"
-            />
-            <datalist id="models-list">
-              {existingModels.map((model, index) => (
-                <option key={index} value={model} />
-              ))}
-            </datalist>
+            <div className="relative">
+              <Input
+                id="model"
+                list="models-list"
+                value={formData.model}
+                onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                onFocus={handleInputFocus}
+                disabled={isLoading}
+                placeholder="Например: iPhone 13 Pro"
+                className="w-full pr-8"
+                autoComplete="off"
+              />
+              <datalist id="models-list">
+                {existingModels.map((model, index) => (
+                  <option key={index} value={model} />
+                ))}
+              </datalist>
+            </div>
           </div>
 
           <div className="space-y-1.5">
