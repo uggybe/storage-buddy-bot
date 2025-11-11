@@ -281,24 +281,25 @@ const Inventory = () => {
               </Select>
             </div>
 
-            <div className="flex items-center justify-center gap-2">
-              <Button
-                variant={sortOrder === "desc" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSortOrder(sortOrder === "desc" ? null : "desc")}
-                title="Сортировать по количеству (убывание)"
-              >
-                <ArrowDown className="h-4 w-4 mr-1" />
-                Кол-во
-              </Button>
+            <div className="flex items-center gap-1">
+              <span className="text-sm text-muted-foreground mr-1">Сортировка:</span>
               <Button
                 variant={sortOrder === "asc" ? "default" : "outline"}
-                size="sm"
+                size="icon"
+                className="h-8 w-8"
                 onClick={() => setSortOrder(sortOrder === "asc" ? null : "asc")}
-                title="Сортировать по количеству (возрастание)"
+                title="По возрастанию количества"
               >
-                <ArrowUp className="h-4 w-4 mr-1" />
-                Кол-во
+                <ArrowUp className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={sortOrder === "desc" ? "default" : "outline"}
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setSortOrder(sortOrder === "desc" ? null : "desc")}
+                title="По убыванию количества"
+              >
+                <ArrowDown className="h-4 w-4" />
               </Button>
             </div>
           </div>
