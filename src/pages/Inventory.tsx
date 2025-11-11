@@ -208,14 +208,14 @@ const Inventory = () => {
             <img src={logo} alt="ЦЭПП Services" className="h-10" />
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <div className="flex flex-col items-end text-xs text-muted-foreground leading-tight min-w-0">
-                {userLastName && userFirstName ? (
+                {userLastName.trim() && userFirstName.trim() ? (
                   <>
                     <span className="truncate max-w-[120px]">{userLastName}</span>
                     <span className="truncate max-w-[120px]">{userFirstName}</span>
                   </>
-                ) : userLastName ? (
+                ) : userLastName.trim() ? (
                   <span className="truncate max-w-[120px]">{userLastName}</span>
-                ) : userFirstName ? (
+                ) : userFirstName.trim() ? (
                   <span className="truncate max-w-[120px]">{userFirstName}</span>
                 ) : (
                   <span className="truncate max-w-[120px]">Пользователь</span>

@@ -158,8 +158,15 @@ All colors MUST be HSL.
     animation: none !important;
   }
 
-  /* Center datalist picker indicator vertically */
-  input::-webkit-calendar-picker-indicator {
-    align-self: center;
+  /* Center datalist picker indicator vertically and horizontally */
+  input[list]::-webkit-calendar-picker-indicator {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  input[list] {
+    position: relative;
   }
 }
