@@ -15,6 +15,8 @@ type Transaction = {
   purpose: string | null;
   item_name: string | null;
   category_name: string | null;
+  warehouse_returned: string | null;
+  location_details: string | null;
   details: any;
   created_at: string;
   app_users: {
@@ -94,26 +96,27 @@ const TransactionLog = () => {
     const itemType = details?.item_type;
     const oldQty = details?.old_quantity;
     const newQty = details?.new_quantity;
-    const showQuantityChange = itemType === "множественный" && oldQty !== undefined && newQty !== undefined;
+    const isMultiple = itemType === "множественный";
+    const showQuantityChange = isMultiple && oldQty !== undefined && newQty !== undefined;
 
     switch (action) {
       case "взято":
         if (showQuantityChange) {
-          return `Взял (${quantity} шт.) — было ${oldQty} → стало ${newQty}`;
+          return `Взял ${quantity} шт. (было ${oldQty} → стало ${newQty})`;
         }
-        return itemType === "единичный" ? "Взял" : `Взял (${quantity} шт.)`;
+        return "Взял";
       case "возвращено":
         if (showQuantityChange) {
-          return `Вернул (${quantity} шт.) — было ${oldQty} → стало ${newQty}`;
+          return `Вернул ${quantity} шт. (было ${oldQty} → стало ${newQty})`;
         }
-        return itemType === "единичный" ? "Вернул" : `Вернул (${quantity} шт.)`;
+        return "Вернул";
       case "пополнено":
         if (showQuantityChange) {
-          return `Пополнил (+${quantity} шт.) — было ${oldQty} → стало ${newQty}`;
+          return `Пополнил +${quantity} шт. (было ${oldQty} → стало ${newQty})`;
         }
-        return `Пополнил (+${quantity} шт.)`;
+        return `Пополнил +${quantity} шт.`;
       case "создано":
-        return itemType === "единичный" ? "Создал предмет" : `Создал предмет (${quantity} шт.)`;
+        return isMultiple ? `Создал предмет (количество: ${quantity} шт.)` : "Создал предмет";
       case "изменено":
         return `Изменил предмет`;
       case "удалено":
@@ -141,15 +144,22 @@ const TransactionLog = () => {
     }
 
     return (
-      <div className="mt-2 space-y-1 text-xs">
-        {Object.entries(details.changes).map(([field, change]: [string, any]) => (
-          <div key={field} className="text-muted-foreground">
-            <span className="font-medium">{getFieldLabel(field)}:</span>{" "}
-            <span className="line-through">{change.old || '—'}</span>
-            {" → "}
-            <span className="font-medium">{change.new || '—'}</span>
-          </div>
-        ))}
+      <div className="mt-2 space-y-1.5">
+        {Object.entries(details.changes).map(([field, change]: [string, any]) => {
+          const oldVal = change.old || '—';
+          const newVal = change.new || '—';
+
+          return (
+            <div key={field} className="text-xs bg-white/50 dark:bg-black/20 rounded px-2 py-1.5 border border-current/20">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-semibold text-foreground">{getFieldLabel(field)}:</span>
+                <span className="text-muted-foreground line-through">{oldVal}</span>
+                <span className="text-muted-foreground">→</span>
+                <span className="font-medium text-foreground">{newVal}</span>
+              </div>
+            </div>
+          );
+        })}
       </div>
     );
   };
@@ -371,6 +381,28 @@ const TransactionLog = () => {
                     {transaction.purpose && (
                       <div className="text-xs mt-1 text-muted-foreground">
                         Назначение: {transaction.purpose}
+                      </div>
+                    )}
+                    {/* Show warehouse and location for return action */}
+                    {transaction.action === "возвращено" && (transaction.warehouse_returned || transaction.location_details) && (
+                      <div className="text-xs mt-1.5 bg-white/50 dark:bg-black/20 rounded px-2 py-1.5 border border-current/20">
+                        {transaction.warehouse_returned && (
+                          <>
+                            <span className="font-semibold">Склад:</span> {transaction.warehouse_returned}
+                          </>
+                        )}
+                        {transaction.location_details && (
+                          <>
+                            {transaction.warehouse_returned && " • "}
+                            <span className="font-semibold">Место:</span> {transaction.location_details}
+                          </>
+                        )}
+                      </div>
+                    )}
+                    {/* Show location for replenish action if available */}
+                    {transaction.action === "пополнено" && transaction.details?.location && (
+                      <div className="text-xs mt-1.5 bg-white/50 dark:bg-black/20 rounded px-2 py-1.5 border border-current/20">
+                        <span className="font-semibold">Место:</span> {transaction.details.location}
                       </div>
                     )}
                     {transaction.action === "изменено" && renderChanges(transaction.details)}
