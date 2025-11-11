@@ -208,15 +208,18 @@ const Inventory = () => {
             <img src={logo} alt="ЦЭПП Services" className="h-10" />
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <div className="flex flex-col items-end text-xs text-muted-foreground leading-tight min-w-0">
-                {userLastName ? (
+                {userLastName && userFirstName ? (
+                  <>
+                    <span className="truncate max-w-[120px]">{userLastName}</span>
+                    <span className="truncate max-w-[120px]">{userFirstName}</span>
+                  </>
+                ) : userLastName ? (
                   <span className="truncate max-w-[120px]">{userLastName}</span>
-                ) : null}
-                {userFirstName ? (
+                ) : userFirstName ? (
                   <span className="truncate max-w-[120px]">{userFirstName}</span>
-                ) : null}
-                {!userLastName && !userFirstName ? (
+                ) : (
                   <span className="truncate max-w-[120px]">Пользователь</span>
-                ) : null}
+                )}
               </div>
               <Button
                 variant="ghost"
@@ -260,11 +263,18 @@ const Inventory = () => {
             >
               <Filter className="h-4 w-4 mr-2" />
               Фильтры
-              {(selectedWarehouse !== "all" || selectedCategory !== "all" || selectedItemType !== "all") && (
-                <span className="ml-2 bg-white/20 rounded-full px-2 py-0.5 text-xs">
-                  ●
-                </span>
-              )}
+              {(() => {
+                const activeFiltersCount =
+                  (selectedWarehouse !== "all" ? 1 : 0) +
+                  (selectedCategory !== "all" ? 1 : 0) +
+                  (selectedItemType !== "all" ? 1 : 0);
+
+                return activeFiltersCount > 0 ? (
+                  <span className="ml-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-semibold">
+                    {activeFiltersCount}
+                  </span>
+                ) : null;
+              })()}
             </Button>
 
             <div className="flex gap-2">

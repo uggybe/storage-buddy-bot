@@ -157,4 +157,9 @@ All colors MUST be HSL.
   [data-radix-popover-content] {
     animation: none !important;
   }
+
+  /* Center datalist picker indicator vertically */
+  input::-webkit-calendar-picker-indicator {
+    align-self: center;
+  }
 }
