@@ -68,12 +68,10 @@ const Inventory = () => {
       }
 
       // Get user's name from Telegram metadata
-      const firstName = session.user.user_metadata?.first_name || "";
-      const lastName = session.user.user_metadata?.last_name || "";
-      setUserFirstName(firstName);
-      setUserLastName(lastName);
-      console.log("User metadata:", session.user.user_metadata);
-      console.log("User firstName:", firstName, "lastName:", lastName);
+      const firstName = session.user.user_metadata?.first_name || null;
+      const lastName = session.user.user_metadata?.last_name || null;
+      setUserFirstName(firstName || "");
+      setUserLastName(lastName || "");
 
       fetchWarehouses();
       fetchItems();
