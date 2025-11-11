@@ -94,26 +94,14 @@ const TransactionLog = () => {
 
   const getActionText = (action: string, quantity: number, details: any) => {
     const itemType = details?.item_type;
-    const oldQty = details?.old_quantity;
-    const newQty = details?.new_quantity;
     const isMultiple = itemType === "множественный";
-    const showQuantityChange = isMultiple && oldQty !== undefined && newQty !== undefined;
 
     switch (action) {
       case "взято":
-        if (showQuantityChange) {
-          return `Взял ${quantity} шт. (было ${oldQty} → стало ${newQty})`;
-        }
-        return "Взял";
+        return isMultiple ? `Взял ${quantity} шт.` : "Взял";
       case "возвращено":
-        if (showQuantityChange) {
-          return `Вернул ${quantity} шт. (было ${oldQty} → стало ${newQty})`;
-        }
-        return "Вернул";
+        return isMultiple ? `Вернул ${quantity} шт.` : "Вернул";
       case "пополнено":
-        if (showQuantityChange) {
-          return `Пополнил +${quantity} шт. (было ${oldQty} → стало ${newQty})`;
-        }
         return `Пополнил +${quantity} шт.`;
       case "создано":
         return isMultiple ? `Создал предмет (количество: ${quantity} шт.)` : "Создал предмет";
@@ -136,6 +124,31 @@ const TransactionLog = () => {
       default:
         return action;
     }
+  };
+
+  // Render quantity change details
+  const renderQuantityChange = (details: any, quantity: number, action: string) => {
+    const oldQty = details?.old_quantity;
+    const newQty = details?.new_quantity;
+
+    if (oldQty === undefined || newQty === undefined) return null;
+
+    let changeText = "";
+    if (action === "взято") {
+      changeText = `Было ${oldQty} → убрал ${quantity} → стало ${newQty}`;
+    } else if (action === "возвращено") {
+      changeText = `Было ${oldQty} → вернул ${quantity} → стало ${newQty}`;
+    } else if (action === "пополнено") {
+      changeText = `Было ${oldQty} → добавил +${quantity} → стало ${newQty}`;
+    }
+
+    if (!changeText) return null;
+
+    return (
+      <div className="mt-1.5 text-xs bg-white/50 dark:bg-black/20 rounded px-2 py-1.5 border border-current/20">
+        <span className="font-semibold">Количество:</span> {changeText}
+      </div>
+    );
   };
 
   const renderChanges = (details: any) => {
@@ -230,22 +243,54 @@ const TransactionLog = () => {
           app_users (name),
           items (name, model)
         `)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false});
 
       if (error) throw error;
 
-      // Prepare data for CSV
-      const csvData = (data || []).map((t: Transaction) => ({
-        'Дата': formatDate(t.created_at),
-        'Пользователь': t.app_users?.name || 'Неизвестный',
-        'Действие': getActionText(t.action, t.quantity, t.details),
-        'Предмет': t.item_name || t.items?.name || 'Категория',
-        'Модель': t.items?.model || '',
-        'Категория': t.category_name || '',
-        'Количество': t.quantity,
-        'Назначение': t.purpose || '',
-        'Детали': t.details ? JSON.stringify(t.details) : '',
-      }));
+      // Prepare data for CSV with enhanced details
+      const csvData = (data || []).map((t: Transaction) => {
+        let detailsText = '';
+
+        // Add quantity changes
+        if (t.details?.old_quantity !== undefined && t.details?.new_quantity !== undefined) {
+          if (t.action === "взято") {
+            detailsText += `Было ${t.details.old_quantity} → убрал ${t.quantity} → стало ${t.details.new_quantity}`;
+          } else if (t.action === "возвращено") {
+            detailsText += `Было ${t.details.old_quantity} → вернул ${t.quantity} → стало ${t.details.new_quantity}`;
+          } else if (t.action === "пополнено") {
+            detailsText += `Было ${t.details.old_quantity} → добавил +${t.quantity} → стало ${t.details.new_quantity}`;
+          }
+        }
+
+        // Add warehouse and location for returns
+        if (t.action === "возвращено" && (t.warehouse_returned || t.location_details)) {
+          if (detailsText) detailsText += ' | ';
+          if (t.warehouse_returned) detailsText += `Склад: ${t.warehouse_returned}`;
+          if (t.location_details) detailsText += ` | Место: ${t.location_details}`;
+        }
+
+        // Add changes for edit action
+        if (t.action === "изменено" && t.details?.changes) {
+          const changes = Object.entries(t.details.changes)
+            .map(([field, change]: [string, any]) =>
+              `${getFieldLabel(field)}: ${change.old || '—'} → ${change.new || '—'}`
+            )
+            .join(' | ');
+          if (detailsText) detailsText += ' | ';
+          detailsText += changes;
+        }
+
+        return {
+          'Дата': formatDate(t.created_at),
+          'Пользователь': t.app_users?.name || 'Неизвестный',
+          'Действие': getActionText(t.action, t.quantity, t.details),
+          'Предмет': t.item_name || t.items?.name || 'Категория',
+          'Модель': t.items?.model || '',
+          'Категория': t.category_name || '',
+          'Назначение': t.purpose || '',
+          'Детали': detailsText,
+        };
+      });
 
       // Convert to CSV
       const BOM = '\uFEFF';
@@ -254,34 +299,41 @@ const TransactionLog = () => {
       // Generate filename with current date
       const fileName = `Журнал_событий_${new Date().toISOString().split('T')[0]}.csv`;
 
-      // Get Telegram user ID
+      // Check if running in Telegram WebApp
       const telegramWebApp = (window as any).Telegram?.WebApp;
       const chatId = telegramWebApp?.initDataUnsafe?.user?.id;
+      const isInTelegram = !!telegramWebApp && telegramWebApp.platform !== 'unknown';
 
-      // Try to send via Telegram bot (не блокируем скачивание)
-      if (chatId) {
+      console.log('Telegram context:', { chatId, platform: telegramWebApp?.platform, isInTelegram });
+
+      // If in Telegram, send via bot
+      if (isInTelegram && chatId) {
         toast.info("Отправка файла в Telegram...");
 
-        supabase.functions.invoke('send-telegram-file', {
-          body: { chatId, csvData: csv, fileName },
-        }).then(response => {
+        try {
+          const response = await supabase.functions.invoke('send-telegram-file', {
+            body: { chatId, csvData: csv, fileName },
+          });
+
           console.log("Edge Function response:", response);
 
           if (!response.error && response.data?.success) {
-            toast.success("Файл отправлен в Telegram!");
+            toast.success("✅ Файл отправлен в Telegram! Проверьте чат с ботом.");
+            return; // Don't try to download if sent successfully
           } else {
-            console.error("Edge Function error:", response.error);
-            toast.error("Не удалось отправить через бота");
+            console.error("Edge Function error:", response.error || response.data);
+            throw new Error(response.data?.error || "Не удалось отправить файл");
           }
-        }).catch(err => {
-          console.error("Edge Function failed:", err);
-          toast.error("Не удалось отправить через бота");
-        });
+        } catch (err: any) {
+          console.error("Telegram send failed:", err);
+          toast.error(`Ошибка отправки в Telegram: ${err.message}`);
+
+          // Fallback to download if Telegram send fails
+          toast.info("Попытка обычного скачивания...");
+        }
       }
 
-      // Скачивание файла (работает параллельно)
-      toast.info("Скачивание файла...");
-
+      // Fallback: normal download (for desktop or if Telegram send failed)
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
 
@@ -380,15 +432,20 @@ const TransactionLog = () => {
                     )}
                     {transaction.purpose && (
                       <div className="text-xs mt-1 text-muted-foreground">
-                        Назначение: {transaction.purpose}
+                        <span className="font-medium">Назначение:</span> {transaction.purpose}
                       </div>
                     )}
+
+                    {/* Show quantity change for взято/возвращено/пополнено */}
+                    {(transaction.action === "взято" || transaction.action === "возвращено" || transaction.action === "пополнено") &&
+                      renderQuantityChange(transaction.details, transaction.quantity, transaction.action)}
+
                     {/* Show warehouse and location for return action */}
                     {transaction.action === "возвращено" && (transaction.warehouse_returned || transaction.location_details) && (
                       <div className="text-xs mt-1.5 bg-white/50 dark:bg-black/20 rounded px-2 py-1.5 border border-current/20">
                         {transaction.warehouse_returned && (
                           <>
-                            <span className="font-semibold">Склад:</span> {transaction.warehouse_returned}
+                            <span className="font-semibold">Возврат на склад:</span> {transaction.warehouse_returned}
                           </>
                         )}
                         {transaction.location_details && (
@@ -399,12 +456,22 @@ const TransactionLog = () => {
                         )}
                       </div>
                     )}
+
                     {/* Show location for replenish action if available */}
                     {transaction.action === "пополнено" && transaction.details?.location && (
                       <div className="text-xs mt-1.5 bg-white/50 dark:bg-black/20 rounded px-2 py-1.5 border border-current/20">
-                        <span className="font-semibold">Место:</span> {transaction.details.location}
+                        <span className="font-semibold">Место хранения:</span> {transaction.details.location}
                       </div>
                     )}
+
+                    {/* Show warehouse info */}
+                    {transaction.details?.warehouse && transaction.action !== "возвращено" && (
+                      <div className="text-xs mt-1 text-muted-foreground">
+                        <span className="font-medium">Склад:</span> {transaction.details.warehouse}
+                      </div>
+                    )}
+
+                    {/* Show all changes for edit action */}
                     {transaction.action === "изменено" && renderChanges(transaction.details)}
                   </div>
                   <div className="text-xs text-muted-foreground flex-shrink-0">
