@@ -217,9 +217,9 @@ export const ItemCard = ({
           <>
             <CardContent className="space-y-1.5 py-2 px-3">
               {/* Info badges */}
-              <div className="flex items-center gap-2 flex-wrap my-2.5">
-                <Badge variant="secondary" className="text-xs px-2 py-0.5 h-5">{item.category}</Badge>
-                <Badge variant="outline" className="text-xs px-2 py-0.5 h-5">{item.warehouse}</Badge>
+              <div className="flex items-center justify-center gap-2 flex-wrap -mt-1">
+                <Badge variant="secondary" className="text-sm px-3 py-1 h-6">{item.category}</Badge>
+                <Badge variant="outline" className="text-sm px-3 py-1 h-6">{item.warehouse}</Badge>
               </div>
 
               {isLowStock && (
