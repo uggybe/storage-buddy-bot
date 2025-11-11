@@ -281,8 +281,7 @@ const Inventory = () => {
               </Select>
             </div>
 
-            <div className="flex items-center gap-1">
-              <span className="text-sm text-muted-foreground mr-1">Сортировка:</span>
+            <div className="flex items-center justify-center gap-1">
               <Button
                 variant={sortOrder === "asc" ? "default" : "outline"}
                 size="icon"

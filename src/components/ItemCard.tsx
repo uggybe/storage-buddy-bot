@@ -186,9 +186,9 @@ export const ItemCard = ({
               {item.item_type === "множественный" && (
                 <span className="text-lg font-bold tabular-nums">
                   {item.quantity === 0 ? (
-                    <span className="text-red-600">0</span>
+                    <span className="text-red-600">0 шт.</span>
                   ) : (
-                    <span>{item.quantity}</span>
+                    <span>{item.quantity} шт.</span>
                   )}
                 </span>
               )}
