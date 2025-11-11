@@ -70,26 +70,12 @@ const Inventory = () => {
       // Get user's name from whitelist table
       const { data: whitelistData } = await supabase
         .from('whitelist')
-        .select('name')
+        .select('last_name, first_name')
         .eq('telegram_id', telegramId)
         .single();
 
-      const fullName = whitelistData?.name || '';
-
-      if (fullName) {
-        // Split name by space: first word = last name, rest = first name
-        const nameParts = fullName.split(' ');
-        if (nameParts.length > 1) {
-          setUserLastName(nameParts[0]);
-          setUserFirstName(nameParts.slice(1).join(' '));
-        } else {
-          setUserFirstName(fullName);
-          setUserLastName('');
-        }
-      } else {
-        setUserFirstName('');
-        setUserLastName('');
-      }
+      setUserLastName(whitelistData?.last_name || '');
+      setUserFirstName(whitelistData?.first_name || '');
 
       fetchWarehouses();
       fetchItems();
