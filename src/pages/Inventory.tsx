@@ -3,12 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, History, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Search, History, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 import { ItemCard } from "@/components/ItemCard";
 import { AddItemDialog } from "@/components/AddItemDialog";
+import { FilterDialog } from "@/components/FilterDialog";
 
 type Item = {
   id: string;
@@ -32,6 +32,7 @@ const Inventory = () => {
   const [selectedItemType, setSelectedItemType] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
   const [userName, setUserName] = useState("");
 
   useEffect(() => {
@@ -201,16 +202,17 @@ const Inventory = () => {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+        <div className="container mx-auto px-4 py-2.5">
+          <div className="flex items-center justify-between gap-4">
             <img src={logo} alt="ЦЭПП Services" className="h-10" />
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">{userName}</span>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-sm text-muted-foreground truncate max-w-[150px]">{userName}</span>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate("/log")}
                 title="Журнал событий"
+                className="flex-shrink-0"
               >
                 <History className="h-4 w-4" />
               </Button>
@@ -230,75 +232,48 @@ const Inventory = () => {
           </div>
 
           <div className="flex flex-col gap-2">
-            <div className="grid gap-2 md:grid-cols-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Поиск по названию..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-
-              <Select value={selectedWarehouse} onValueChange={setSelectedWarehouse}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Все склады" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все склады</SelectItem>
-                  {warehouses.map(warehouse => (
-                    <SelectItem key={warehouse} value={warehouse}>
-                      {warehouse}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Все категории" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все категории</SelectItem>
-                  {categories.map(category => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={selectedItemType} onValueChange={setSelectedItemType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Все типы" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все типы</SelectItem>
-                  <SelectItem value="единичный">Единичный</SelectItem>
-                  <SelectItem value="множественный">Множественный</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Поиск по названию..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
             </div>
 
-            <div className="flex items-center justify-center gap-1">
+            <Button
+              variant="default"
+              onClick={() => setIsFilterDialogOpen(true)}
+              className="w-full"
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              Фильтры
+              {(selectedWarehouse !== "all" || selectedCategory !== "all" || selectedItemType !== "all") && (
+                <span className="ml-2 bg-white/20 rounded-full px-2 py-0.5 text-xs">
+                  ●
+                </span>
+              )}
+            </Button>
+
+            <div className="flex gap-2">
               <Button
                 variant={sortOrder === "asc" ? "default" : "outline"}
-                size="icon"
-                className="h-8 w-8"
+                className="flex-1"
                 onClick={() => setSortOrder(sortOrder === "asc" ? null : "asc")}
                 title="По возрастанию количества"
               >
-                <ArrowUp className="h-4 w-4" />
+                <ArrowUp className="h-4 w-4 mr-1" />
+                По возрастанию
               </Button>
               <Button
                 variant={sortOrder === "desc" ? "default" : "outline"}
-                size="icon"
-                className="h-8 w-8"
+                className="flex-1"
                 onClick={() => setSortOrder(sortOrder === "desc" ? null : "desc")}
                 title="По убыванию количества"
               >
-                <ArrowDown className="h-4 w-4" />
+                <ArrowDown className="h-4 w-4 mr-1" />
+                По убыванию
               </Button>
             </div>
           </div>
@@ -321,6 +296,24 @@ const Inventory = () => {
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
         onSuccess={fetchItems}
+      />
+
+      <FilterDialog
+        open={isFilterDialogOpen}
+        onOpenChange={setIsFilterDialogOpen}
+        warehouses={warehouses}
+        categories={categories}
+        selectedWarehouse={selectedWarehouse}
+        selectedCategory={selectedCategory}
+        selectedItemType={selectedItemType}
+        onWarehouseChange={setSelectedWarehouse}
+        onCategoryChange={setSelectedCategory}
+        onItemTypeChange={setSelectedItemType}
+        onReset={() => {
+          setSelectedWarehouse("all");
+          setSelectedCategory("all");
+          setSelectedItemType("all");
+        }}
       />
     </div>
   );
