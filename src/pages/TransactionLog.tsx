@@ -76,6 +76,20 @@ const TransactionLog = () => {
     }).format(date);
   };
 
+  const getFieldLabel = (field: string) => {
+    const labels: { [key: string]: string } = {
+      name: "Название",
+      model: "Модель",
+      category: "Категория",
+      warehouse: "Склад",
+      item_type: "Тип",
+      location: "Местоположение",
+      notes: "Примечания",
+      quantity: "Количество",
+    };
+    return labels[field] || field;
+  };
+
   const getActionText = (action: string, quantity: number, details: any) => {
     const itemType = details?.item_type;
     const oldQty = details?.old_quantity;
@@ -119,6 +133,25 @@ const TransactionLog = () => {
       default:
         return action;
     }
+  };
+
+  const renderChanges = (details: any) => {
+    if (!details?.changes || Object.keys(details.changes).length === 0) {
+      return null;
+    }
+
+    return (
+      <div className="mt-2 space-y-1 text-xs">
+        {Object.entries(details.changes).map(([field, change]: [string, any]) => (
+          <div key={field} className="text-muted-foreground">
+            <span className="font-medium">{getFieldLabel(field)}:</span>{" "}
+            <span className="line-through">{change.old || '—'}</span>
+            {" → "}
+            <span className="font-medium">{change.new || '—'}</span>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   const getActionColor = (action: string) => {
@@ -340,6 +373,7 @@ const TransactionLog = () => {
                         Назначение: {transaction.purpose}
                       </div>
                     )}
+                    {transaction.action === "изменено" && renderChanges(transaction.details)}
                   </div>
                   <div className="text-xs text-muted-foreground flex-shrink-0">
                     {formatDate(transaction.created_at)}

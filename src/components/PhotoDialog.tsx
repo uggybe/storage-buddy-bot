@@ -62,7 +62,11 @@ export const PhotoDialog = ({
 
         if (error) {
           console.error('Error uploading file:', error);
-          toast.error(`Ошибка загрузки ${file.name}`);
+          if (error.message.includes('Bucket not found')) {
+            toast.error('Ошибка: bucket "item-photos" не создан в Supabase Storage');
+          } else {
+            toast.error(`Ошибка загрузки ${file.name}: ${error.message}`);
+          }
           continue;
         }
 
