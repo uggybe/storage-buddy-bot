@@ -97,6 +97,36 @@ export const EditItemDialog = ({
 
       const numQuantity = parseInt(formData.quantity) || 1;
 
+      // Track changes for detailed logging
+      const changes: any = {};
+
+      if (item.name !== formData.name) {
+        changes.name = { old: item.name, new: formData.name };
+      }
+      if (item.model !== formData.model) {
+        changes.model = { old: item.model || '', new: formData.model };
+      }
+      if (item.category !== formData.category) {
+        changes.category = { old: item.category, new: formData.category };
+      }
+      if (item.warehouse !== formData.warehouse) {
+        changes.warehouse = { old: item.warehouse, new: formData.warehouse };
+      }
+      if (item.item_type !== formData.item_type) {
+        changes.item_type = { old: item.item_type, new: formData.item_type };
+      }
+      if (item.location !== formData.location) {
+        changes.location = { old: item.location || '', new: formData.location };
+      }
+      if (item.notes !== (formData.notes || null)) {
+        changes.notes = { old: item.notes || '', new: formData.notes || '' };
+      }
+
+      const newQuantity = formData.item_type === "единичный" ? 1 : numQuantity;
+      if (item.quantity !== newQuantity) {
+        changes.quantity = { old: item.quantity, new: newQuantity };
+      }
+
       // Update item
       const { error } = await supabase
         .from("items")
@@ -106,7 +136,7 @@ export const EditItemDialog = ({
           category: formData.category,
           warehouse: formData.warehouse as "Мастерская" | "Холодный" | "Теплый",
           item_type: formData.item_type,
-          quantity: formData.item_type === "единичный" ? 1 : numQuantity,
+          quantity: newQuantity,
           location: formData.location,
           notes: formData.notes || null,
         })
@@ -114,19 +144,17 @@ export const EditItemDialog = ({
 
       if (error) throw error;
 
-      // Log the action
+      // Log the action with detailed changes
       await supabase.from("transactions").insert({
         item_id: item.id,
         user_id: appUser.id,
         action: "изменено",
-        quantity: formData.item_type === "единичный" ? 1 : numQuantity,
+        quantity: newQuantity,
         item_name: formData.name,
         category_name: formData.category,
         details: {
-          model: formData.model,
-          warehouse: formData.warehouse,
+          changes,
           item_type: formData.item_type,
-          location: formData.location,
         },
       });
 

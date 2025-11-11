@@ -173,7 +173,7 @@ export const ItemCard = ({
     <>
       <Card className={`${getBorderColor()} cursor-pointer transition-all`} onClick={() => setIsExpanded(!isExpanded)}>
         <CardHeader className="py-2 px-3">
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center justify-between gap-2">
             <div className="flex-1 min-w-0">
               <CardTitle className="text-base leading-tight truncate">{item.name}</CardTitle>
               {item.model && (
@@ -216,10 +216,16 @@ export const ItemCard = ({
         {isExpanded && (
           <>
             <CardContent className="space-y-1.5 py-2 px-3">
-              {/* Badges - ближе к названию */}
-              <div className="flex flex-wrap gap-1.5">
-                <Badge variant="secondary" className="text-xs px-2 py-0">{item.category}</Badge>
-                <Badge variant="outline" className="text-xs px-2 py-0">{item.warehouse}</Badge>
+              {/* Info badges */}
+              <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1">
+                  <span className="font-medium">Кат:</span>
+                  <Badge variant="secondary" className="text-xs px-1.5 py-0 h-4">{item.category}</Badge>
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="font-medium">Скл:</span>
+                  <Badge variant="outline" className="text-xs px-1.5 py-0 h-4">{item.warehouse}</Badge>
+                </span>
               </div>
 
               {isLowStock && (
