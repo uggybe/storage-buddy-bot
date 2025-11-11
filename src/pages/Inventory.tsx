@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, History, ArrowUp, ArrowDown, Filter } from "lucide-react";
+import { Plus, Search, BookOpen, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 import { ItemCard } from "@/components/ItemCard";
@@ -33,7 +33,8 @@ const Inventory = () => {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
-  const [userName, setUserName] = useState("");
+  const [userFirstName, setUserFirstName] = useState("");
+  const [userLastName, setUserLastName] = useState("");
 
   useEffect(() => {
     // Check authentication status
@@ -67,11 +68,11 @@ const Inventory = () => {
       }
 
       // Get user's name from Telegram metadata
-      const name = session.user.user_metadata?.name ||
-                   session.user.user_metadata?.first_name ||
-                   "Пользователь";
-      setUserName(name);
-      console.log("User name:", name);
+      const firstName = session.user.user_metadata?.first_name || "";
+      const lastName = session.user.user_metadata?.last_name || "";
+      setUserFirstName(firstName);
+      setUserLastName(lastName);
+      console.log("User name:", lastName, firstName);
 
       fetchWarehouses();
       fetchItems();
@@ -202,19 +203,22 @@ const Inventory = () => {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-2.5">
-          <div className="flex items-center justify-between gap-4">
+        <div className="container mx-auto px-4 py-1">
+          <div className="flex items-center justify-between gap-2">
             <img src={logo} alt="ЦЭПП Services" className="h-10" />
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="text-sm text-muted-foreground truncate max-w-[150px]">{userName}</span>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <div className="flex flex-col items-end text-xs text-muted-foreground leading-tight">
+                {userLastName && <span className="truncate max-w-[100px]">{userLastName}</span>}
+                {userFirstName && <span className="truncate max-w-[100px]">{userFirstName}</span>}
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate("/log")}
                 title="Журнал событий"
-                className="flex-shrink-0"
+                className="flex-shrink-0 h-8 w-8 p-0"
               >
-                <History className="h-4 w-4" />
+                <BookOpen className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -259,21 +263,21 @@ const Inventory = () => {
             <div className="flex gap-2">
               <Button
                 variant={sortOrder === "asc" ? "default" : "outline"}
-                className="flex-1"
+                className="flex-1 text-sm px-2"
                 onClick={() => setSortOrder(sortOrder === "asc" ? null : "asc")}
                 title="По возрастанию количества"
               >
                 <ArrowUp className="h-4 w-4 mr-1" />
-                По возрастанию
+                <span className="whitespace-nowrap">Возрастание</span>
               </Button>
               <Button
                 variant={sortOrder === "desc" ? "default" : "outline"}
-                className="flex-1"
+                className="flex-1 text-sm px-2"
                 onClick={() => setSortOrder(sortOrder === "desc" ? null : "desc")}
                 title="По убыванию количества"
               >
                 <ArrowDown className="h-4 w-4 mr-1" />
-                По убыванию
+                <span className="whitespace-nowrap">Убывание</span>
               </Button>
             </div>
           </div>
@@ -281,7 +285,7 @@ const Inventory = () => {
 
         <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
           {filteredItems.map(item => (
-            <ItemCard key={item.id} item={item} onUpdate={fetchItems} userName={userName} />
+            <ItemCard key={item.id} item={item} onUpdate={fetchItems} userName={`${userFirstName} ${userLastName}`.trim() || "Пользователь"} />
           ))}
         </div>
 

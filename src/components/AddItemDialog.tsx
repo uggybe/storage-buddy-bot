@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CategorySelect } from "./CategorySelect";
 import { WarehouseSelect } from "./WarehouseSelect";
+import { AutocompleteInput } from "./AutocompleteInput";
 
 export const AddItemDialog = ({
   open,
@@ -153,41 +154,29 @@ export const AddItemDialog = ({
         <form onSubmit={handleSubmit} className="space-y-2">
           <div className="space-y-1.5">
             <Label htmlFor="name">Название *</Label>
-            <Input
+            <AutocompleteInput
               id="name"
-              list="names-list"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(value) => setFormData({ ...formData, name: value })}
               onFocus={handleInputFocus}
+              suggestions={existingNames}
               disabled={isLoading}
               className="w-full"
-              autoComplete="off"
             />
-            <datalist id="names-list">
-              {existingNames.map((name, index) => (
-                <option key={index} value={name} />
-              ))}
-            </datalist>
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="model">Модель *</Label>
-            <Input
+            <AutocompleteInput
               id="model"
-              list="models-list"
               value={formData.model}
-              onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+              onChange={(value) => setFormData({ ...formData, model: value })}
               onFocus={handleInputFocus}
-              disabled={isLoading}
+              suggestions={existingModels}
               placeholder="Например: iPhone 13 Pro"
+              disabled={isLoading}
               className="w-full"
-              autoComplete="off"
             />
-            <datalist id="models-list">
-              {existingModels.map((model, index) => (
-                <option key={index} value={model} />
-              ))}
-            </datalist>
           </div>
 
           <div className="space-y-1.5">
