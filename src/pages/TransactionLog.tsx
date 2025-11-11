@@ -304,72 +304,74 @@ const TransactionLog = () => {
       // Generate filename with current date
       const fileName = `Журнал_событий_${new Date().toISOString().split('T')[0]}.csv`;
 
-      // Check if running in Telegram WebApp
-      const telegramWebApp = (window as any).Telegram?.WebApp;
-      const chatId = telegramWebApp?.initDataUnsafe?.user?.id;
-      const isInTelegram = !!telegramWebApp && telegramWebApp.platform !== 'unknown';
-
-      console.log('Export Debug:', {
-        hasTelegramObject: !!(window as any).Telegram,
-        hasWebApp: !!telegramWebApp,
-        chatId,
-        platform: telegramWebApp?.platform,
-        isInTelegram,
-        initDataUnsafe: telegramWebApp?.initDataUnsafe
-      });
-
-      // Try to send via Telegram if we have chatId (regardless of isInTelegram)
-      if (chatId) {
-        toast.info("Отправка файла в Telegram...");
-
-        try {
-          const response = await supabase.functions.invoke('send-telegram-file', {
-            body: { chatId, csvData: csv, fileName },
-          });
-
-          console.log("Edge Function response:", response);
-
-          if (!response.error && response.data?.success) {
-            toast.success("✅ Файл отправлен в Telegram! Проверьте чат с ботом.");
-            return; // Don't try to download if sent successfully
-          } else {
-            console.error("Edge Function error:", response.error || response.data);
-            throw new Error(response.data?.error || "Не удалось отправить файл");
-          }
-        } catch (err: any) {
-          console.error("Telegram send failed:", err);
-          toast.error(`Ошибка отправки в Telegram: ${err.message}`);
-
-          // Fallback to download if Telegram send fails
-          toast.info("Попытка обычного скачивания...");
-        }
-      } else {
-        console.log("No chatId found, skipping Telegram send");
-        toast.info("Telegram не обнаружен, скачиваем файл локально...");
-      }
-
-      // Fallback: normal download (for desktop or if Telegram send failed)
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-
-      setTimeout(() => {
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      }, 100);
-
       // Check if mobile device
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+      // Option 1: Try Web Share API for mobile devices (best for mobile)
+      if (isMobile && navigator.share) {
+        try {
+          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+          const file = new File([blob], fileName, { type: 'text/csv;charset=utf-8;' });
+
+          await navigator.share({
+            files: [file],
+            title: 'Журнал событий',
+            text: 'Экспорт журнала событий'
+          });
+
+          toast.success("✅ Файл отправлен!");
+          return;
+        } catch (err: any) {
+          // User cancelled or sharing not supported
+          if (err.name !== 'AbortError') {
+            console.log('Share failed, trying alternative download:', err);
+          } else {
+            return; // User cancelled, don't show error
+          }
+        }
+      }
+
+      // Option 2: Use data URL for mobile (works better than blob on some mobile browsers)
       if (isMobile) {
-        toast.success("📱 Файл сохранен в Downloads");
-      } else {
-        toast.success("Файл скачан!");
+        try {
+          const dataUrl = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+          const link = document.createElement('a');
+          link.href = dataUrl;
+          link.download = fileName;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          toast.success("📱 Файл готов к скачиванию!");
+          return;
+        } catch (err) {
+          console.error("Data URL download failed, trying blob:", err);
+        }
+      }
+
+      // Option 3: Standard blob download (for desktop and fallback)
+      try {
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+        }, 100);
+
+        toast.success(isMobile ? "📱 Файл сохранен" : "Файл скачан!");
+      } catch (err) {
+        console.error("Blob download failed:", err);
+        toast.error("Ошибка скачивания. Попробуйте с компьютера.");
       }
     } catch (error: any) {
       console.error("Error exporting:", error);
