@@ -67,11 +67,29 @@ const Inventory = () => {
         return;
       }
 
-      // Get user's name from Telegram metadata
-      const firstName = session.user.user_metadata?.first_name || null;
-      const lastName = session.user.user_metadata?.last_name || null;
-      setUserFirstName(firstName || "");
-      setUserLastName(lastName || "");
+      // Get user's name from whitelist table
+      const { data: whitelistData } = await supabase
+        .from('whitelist')
+        .select('name')
+        .eq('telegram_id', telegramId)
+        .single();
+
+      const fullName = whitelistData?.name || '';
+
+      if (fullName) {
+        // Split name by space: first word = last name, rest = first name
+        const nameParts = fullName.split(' ');
+        if (nameParts.length > 1) {
+          setUserLastName(nameParts[0]);
+          setUserFirstName(nameParts.slice(1).join(' '));
+        } else {
+          setUserFirstName(fullName);
+          setUserLastName('');
+        }
+      } else {
+        setUserFirstName('');
+        setUserLastName('');
+      }
 
       fetchWarehouses();
       fetchItems();
