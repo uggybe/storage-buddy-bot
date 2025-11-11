@@ -1,18 +1,14 @@
 import { useState, useEffect } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, Settings, Trash2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Check, ChevronsUpDown, Plus, Settings, Edit2, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 type Warehouse = {
   id: string;
@@ -28,11 +24,13 @@ export const WarehouseSelect = ({
   onChange: (value: string) => void;
   disabled?: boolean;
 }) => {
+  const [open, setOpen] = useState(false);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isManageDialogOpen, setIsManageDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
   const [newWarehouseName, setNewWarehouseName] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     fetchWarehouses();
@@ -51,26 +49,36 @@ export const WarehouseSelect = ({
   }, []);
 
   const fetchWarehouses = async () => {
-    const { data, error } = await supabase
-      .from('warehouses')
-      .select('*')
-      .order('name');
+    try {
+      const { data, error } = await supabase
+        .from("warehouses")
+        .select("*")
+        .order("name");
 
-    if (error) {
-      console.error('Error fetching warehouses:', error);
-      return;
+      if (error) {
+        console.error("Error fetching warehouses:", error);
+        toast.error(`Ошибка загрузки складов: ${error.message}`);
+        return;
+      }
+
+      if (data) {
+        setWarehouses(data);
+      }
+    } catch (err) {
+      console.error("Unexpected error fetching warehouses:", err);
     }
-
-    setWarehouses(data || []);
   };
 
-  const handleCreate = async () => {
+  const handleSelect = (warehouse: string) => {
+    onChange(warehouse);
+    setOpen(false);
+  };
+
+  const handleCreateWarehouse = async () => {
     if (!newWarehouseName.trim()) {
       toast.error("Введите название склада");
       return;
     }
-
-    setIsCreating(true);
 
     try {
       // Get authenticated user
@@ -86,18 +94,23 @@ export const WarehouseSelect = ({
 
       if (!appUser) throw new Error("User profile not found");
 
-      // Create warehouse
       const { error } = await supabase
-        .from('warehouses')
-        .insert({ name: newWarehouseName.trim() });
+        .from("warehouses")
+        .insert({
+          name: newWarehouseName.trim(),
+        });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Warehouse creation error:", error);
+        toast.error(`Ошибка создания склада: ${error.message}`);
+        return;
+      }
 
       // Log the action
       await supabase.from("transactions").insert({
         user_id: appUser.id,
         action: "склад создан",
-        quantity: 1,
+        quantity: 0,
         item_name: newWarehouseName.trim(),
         details: {
           warehouse_name: newWarehouseName.trim(),
@@ -105,14 +118,72 @@ export const WarehouseSelect = ({
       });
 
       toast.success("Склад создан");
+      onChange(newWarehouseName.trim());
       setNewWarehouseName("");
-      setIsDialogOpen(false);
+      setIsCreateDialogOpen(false);
       fetchWarehouses();
-    } catch (error: any) {
-      console.error('Error creating warehouse:', error);
-      toast.error(error.message || "Ошибка создания склада");
-    } finally {
-      setIsCreating(false);
+    } catch (error) {
+      console.error("Error creating warehouse:", error);
+      toast.error("Ошибка создания склада");
+    }
+  };
+
+  const handleUpdateWarehouse = async () => {
+    if (!editingWarehouse) return;
+
+    try {
+      // Get authenticated user
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error("Not authenticated");
+
+      // Get user's app_users record
+      const { data: appUser } = await supabase
+        .from("app_users")
+        .select("id")
+        .eq("user_id", session.user.id)
+        .single();
+
+      if (!appUser) throw new Error("User profile not found");
+
+      const { error } = await supabase
+        .from("warehouses")
+        .update({
+          name: newWarehouseName.trim(),
+        })
+        .eq("id", editingWarehouse.id);
+
+      if (error) {
+        toast.error("Ошибка обновления склада");
+        console.error(error);
+        return;
+      }
+
+      // Log the action
+      await supabase.from("transactions").insert({
+        user_id: appUser.id,
+        action: "склад изменен",
+        quantity: 0,
+        item_name: newWarehouseName.trim(),
+        details: {
+          old_name: editingWarehouse.name,
+          new_name: newWarehouseName.trim(),
+        },
+      });
+
+      toast.success("Склад обновлен");
+
+      // Update selected value if it was changed
+      if (value === editingWarehouse.name) {
+        onChange(newWarehouseName.trim());
+      }
+
+      setIsEditDialogOpen(false);
+      setEditingWarehouse(null);
+      setNewWarehouseName("");
+      fetchWarehouses();
+    } catch (error) {
+      console.error("Error updating warehouse:", error);
+      toast.error("Ошибка обновления склада");
     }
   };
 
@@ -139,16 +210,15 @@ export const WarehouseSelect = ({
       await supabase.from("transactions").insert({
         user_id: appUser.id,
         action: "склад удален",
-        quantity: 1,
+        quantity: 0,
         item_name: warehouseName,
         details: {
           warehouse_name: warehouseName,
         },
       });
 
-      // Delete warehouse
       const { error } = await supabase
-        .from('warehouses')
+        .from("warehouses")
         .delete()
         .eq("id", warehouseId);
 
@@ -166,114 +236,197 @@ export const WarehouseSelect = ({
     }
   };
 
-  return (
-    <div className="flex gap-2">
-      <Select value={value} onValueChange={onChange} disabled={disabled}>
-        <SelectTrigger className="flex-1">
-          <SelectValue placeholder="Выберите склад" />
-        </SelectTrigger>
-        <SelectContent>
-          {warehouses.map((warehouse) => (
-            <SelectItem key={warehouse.id} value={warehouse.name}>
-              {warehouse.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+  const openCreateDialog = () => {
+    setNewWarehouseName("");
+    setIsCreateDialogOpen(true);
+    setOpen(false);
+  };
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogTrigger asChild>
-          <Button type="button" variant="outline" size="icon" disabled={disabled}>
-            <Plus className="h-4 w-4" />
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="max-w-sm">
+  const openEditDialog = (warehouse: Warehouse) => {
+    setEditingWarehouse(warehouse);
+    setNewWarehouseName(warehouse.name);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    // Scroll to input after keyboard appears
+    setTimeout(() => {
+      e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
+  };
+
+  return (
+    <>
+      <div className="flex gap-2">
+        <Popover open={open} onOpenChange={setOpen} modal={true}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              className="flex-1 justify-between"
+              disabled={disabled}
+            >
+              {value || "Выберите склад"}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[min(400px,90vw)] p-0" align="start" sideOffset={4} onOpenAutoFocus={(e) => e.preventDefault()}>
+            <Command>
+              <CommandInput placeholder="Поиск склада..." />
+              <CommandList>
+                <CommandEmpty>Склад не найден.</CommandEmpty>
+                <CommandGroup>
+                  {warehouses.map((warehouse) => (
+                    <CommandItem
+                      key={warehouse.id}
+                      value={warehouse.name}
+                      onSelect={() => handleSelect(warehouse.name)}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          value === warehouse.name ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      <div className="flex-1">
+                        <div>{warehouse.name}</div>
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+              <div className="border-t p-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={openCreateDialog}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Новый склад
+                </Button>
+              </div>
+            </Command>
+          </PopoverContent>
+        </Popover>
+
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={() => setIsManageDialogOpen(true)}
+          disabled={disabled}
+          title="Управление складами"
+        >
+          <Settings className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Create Warehouse Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="max-w-sm" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
-            <DialogTitle>Новый склад</DialogTitle>
+            <DialogTitle>Создать новый склад</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="warehouse-name">Название склада</Label>
+              <Label htmlFor="new-warehouse-name">Название склада *</Label>
               <Input
-                id="warehouse-name"
+                id="new-warehouse-name"
                 value={newWarehouseName}
                 onChange={(e) => setNewWarehouseName(e.target.value)}
-                placeholder="Например: Новый склад"
-                disabled={isCreating}
+                onFocus={handleInputFocus}
+                placeholder="Например: Холодный склад"
+                className="w-full"
               />
             </div>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsDialogOpen(false)}
-                className="flex-1"
-                disabled={isCreating}
-              >
-                Отмена
-              </Button>
-              <Button
-                type="button"
-                onClick={handleCreate}
-                className="flex-1"
-                disabled={isCreating}
-              >
-                {isCreating ? "Создание..." : "Создать"}
-              </Button>
-            </div>
           </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+              Отмена
+            </Button>
+            <Button onClick={handleCreateWarehouse}>
+              Создать
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Управление складами */}
+      {/* Manage Warehouses Dialog */}
       <Dialog open={isManageDialogOpen} onOpenChange={setIsManageDialogOpen}>
-        <DialogTrigger asChild>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            onClick={() => setIsManageDialogOpen(true)}
-            disabled={disabled}
-            title="Управление складами"
-          >
-            <Settings className="h-4 w-4" />
-          </Button>
-        </DialogTrigger>
         <DialogContent className="max-w-2xl" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>Управление складами</DialogTitle>
           </DialogHeader>
           <div className="max-h-[60vh] overflow-y-auto space-y-2 pr-2">
             {warehouses.length === 0 ? (
-              <p className="text-muted-foreground text-center py-4">Нет складов</p>
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Нет складов
+              </p>
             ) : (
               warehouses.map((warehouse) => (
                 <div
                   key={warehouse.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
                 >
-                  <div className="flex-1">
-                    <p className="font-medium">{warehouse.name}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{warehouse.name}</div>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleDeleteWarehouse(warehouse.id, warehouse.name)}
-                    title="Удалить"
-                  >
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  </Button>
+                  <div className="flex gap-1 flex-shrink-0">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => openEditDialog(warehouse)}
+                      title="Редактировать"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleDeleteWarehouse(warehouse.id, warehouse.name)}
+                      title="Удалить"
+                    >
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                    </Button>
+                  </div>
                 </div>
               ))
             )}
           </div>
-          <div className="flex justify-end pt-2">
-            <Button variant="outline" onClick={() => setIsManageDialogOpen(false)}>
-              Закрыть
-            </Button>
-          </div>
         </DialogContent>
       </Dialog>
-    </div>
+
+      {/* Edit Warehouse Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-sm" onOpenAutoFocus={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>Редактировать склад</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-warehouse-name">Название склада *</Label>
+              <Input
+                id="edit-warehouse-name"
+                value={newWarehouseName}
+                onChange={(e) => setNewWarehouseName(e.target.value)}
+                onFocus={handleInputFocus}
+                placeholder="Например: Холодный склад"
+                className="w-full"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Отмена
+            </Button>
+            <Button onClick={handleUpdateWarehouse}>
+              Сохранить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
