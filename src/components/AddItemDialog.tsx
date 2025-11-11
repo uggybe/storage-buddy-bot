@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,8 @@ export const AddItemDialog = ({
   onSuccess: () => void;
 }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [existingNames, setExistingNames] = useState<string[]>([]);
+  const [existingModels, setExistingModels] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: "",
     model: "",
@@ -31,6 +33,30 @@ export const AddItemDialog = ({
     location: "",
     notes: "",
   });
+
+  // Загрузка существующих названий и моделей
+  useEffect(() => {
+    if (open) {
+      const fetchSuggestions = async () => {
+        try {
+          const { data: items } = await supabase
+            .from("items")
+            .select("name, model")
+            .order("name");
+
+          if (items) {
+            const names = [...new Set(items.map(item => item.name))];
+            const models = [...new Set(items.map(item => item.model).filter(Boolean))];
+            setExistingNames(names);
+            setExistingModels(models);
+          }
+        } catch (error) {
+          console.error("Error fetching suggestions:", error);
+        }
+      };
+      fetchSuggestions();
+    }
+  }, [open]);
 
   const handleInputFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     // Scroll to input after keyboard appears
@@ -129,25 +155,39 @@ export const AddItemDialog = ({
             <Label htmlFor="name">Название *</Label>
             <Input
               id="name"
+              list="names-list"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               onFocus={handleInputFocus}
               disabled={isLoading}
               className="w-full"
+              autoComplete="off"
             />
+            <datalist id="names-list">
+              {existingNames.map((name, index) => (
+                <option key={index} value={name} />
+              ))}
+            </datalist>
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="model">Модель *</Label>
             <Input
               id="model"
+              list="models-list"
               value={formData.model}
               onChange={(e) => setFormData({ ...formData, model: e.target.value })}
               onFocus={handleInputFocus}
               disabled={isLoading}
               placeholder="Например: iPhone 13 Pro"
               className="w-full"
+              autoComplete="off"
             />
+            <datalist id="models-list">
+              {existingModels.map((model, index) => (
+                <option key={index} value={model} />
+              ))}
+            </datalist>
           </div>
 
           <div className="space-y-1.5">
