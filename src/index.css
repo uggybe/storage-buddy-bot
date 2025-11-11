@@ -159,16 +159,10 @@ All colors MUST be HSL.
   }
 
   /* Center datalist picker indicator vertically */
-  input[list] {
-    padding-right: 2rem;
-  }
-
   input[list]::-webkit-calendar-picker-indicator {
     cursor: pointer;
-    position: absolute;
-    right: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
+    vertical-align: middle;
     margin: 0;
+    padding: 0;
   }
 }
