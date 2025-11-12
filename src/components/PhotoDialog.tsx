@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { X, Upload, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 type Item = {
   id: string;
@@ -25,6 +24,7 @@ export const PhotoDialog = ({
   const [photos, setPhotos] = useState<string[]>(item.photos || []);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -42,13 +42,13 @@ export const PhotoDialog = ({
 
         // Validate file type
         if (!file.type.startsWith('image/')) {
-          toast.error(`Файл ${file.name} не является изображением`);
+          console.log(`Файл ${file.name} не является изображением`);
           continue;
         }
 
         // Validate file size (max 5MB)
         if (file.size > 5 * 1024 * 1024) {
-          toast.error(`Файл ${file.name} слишком большой (макс. 5MB)`);
+          console.log(`Файл ${file.name} слишком большой (макс. 5MB)`);
           continue;
         }
 
@@ -63,11 +63,6 @@ export const PhotoDialog = ({
 
         if (error) {
           console.error('Error uploading file:', error);
-          if (error.message.includes('Bucket not found')) {
-            toast.error('Ошибка: bucket "item-photos" не создан в Supabase Storage');
-          } else {
-            toast.error(`Ошибка загрузки ${file.name}: ${error.message}`);
-          }
           continue;
         }
 
@@ -92,7 +87,6 @@ export const PhotoDialog = ({
 
         setPhotos(newPhotos);
         setUploadSuccess(true);
-        toast.success(`Загружено ${uploadedUrls.length} фото`);
         onSuccess();
 
         // Reset success state after 2 seconds
@@ -102,7 +96,6 @@ export const PhotoDialog = ({
       }
     } catch (error) {
       console.error('Error uploading photos:', error);
-      toast.error('Ошибка загрузки фотографий');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
@@ -143,11 +136,15 @@ export const PhotoDialog = ({
       if (currentPhotoIndex >= newPhotos.length && newPhotos.length > 0) {
         setCurrentPhotoIndex(newPhotos.length - 1);
       }
-      toast.success('Удалено 🗑️');
+      setDeleteSuccess(true);
       onSuccess();
+
+      // Reset delete success state after 2 seconds
+      setTimeout(() => {
+        setDeleteSuccess(false);
+      }, 2000);
     } catch (error) {
       console.error('Error deleting photo:', error);
-      toast.error('Ошибка удаления фотографии');
     }
   };
 
@@ -254,10 +251,10 @@ export const PhotoDialog = ({
               variant="outline"
               className="flex-1"
               onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading || uploadSuccess}
+              disabled={isUploading || uploadSuccess || deleteSuccess}
             >
               <Upload className="h-4 w-4 mr-2" />
-              {isUploading ? 'Загрузка...' : uploadSuccess ? 'Загружено 😊' : 'Загрузить фото'}
+              {isUploading ? 'Загрузка...' : uploadSuccess ? 'Загружено 😊' : deleteSuccess ? 'Удалено 😔' : 'Загрузить фото'}
             </Button>
             <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
               Закрыть

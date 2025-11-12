@@ -35,6 +35,7 @@ export const EditItemDialog = ({
   onSuccess: () => void;
 }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [validationError, setValidationError] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     model: "",
@@ -49,6 +50,7 @@ export const EditItemDialog = ({
 
   useEffect(() => {
     if (open) {
+      setValidationError("");
       setFormData({
         name: item.name,
         model: item.model || "",
@@ -75,9 +77,11 @@ export const EditItemDialog = ({
 
     // All fields except notes are required
     if (!formData.name || !formData.model || !formData.category || !formData.warehouse || !formData.location) {
-      toast.error("Заполните все обязательные поля");
+      setValidationError("Заполните все обязательные поля");
       return;
     }
+
+    setValidationError("");
 
     setIsLoading(true);
 
@@ -163,7 +167,7 @@ export const EditItemDialog = ({
       onOpenChange(false);
     } catch (error) {
       console.error("Error updating item:", error);
-      toast.error("Ошибка обновления предмета");
+      setValidationError("Ошибка обновления предмета");
     } finally {
       setIsLoading(false);
     }
@@ -284,6 +288,12 @@ export const EditItemDialog = ({
               className="w-full"
             />
           </div>
+
+          {validationError && (
+            <div className="text-red-600 text-xs text-center">
+              {validationError}
+            </div>
+          )}
 
           <div className="flex gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
