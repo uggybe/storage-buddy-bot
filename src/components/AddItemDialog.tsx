@@ -9,7 +9,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CategorySelect } from "./CategorySelect";
 import { WarehouseSelect } from "./WarehouseSelect";
-import { ManufacturerSelect } from "./ManufacturerSelect";
 
 export const AddItemDialog = ({
   open,
@@ -23,6 +22,7 @@ export const AddItemDialog = ({
   const [isLoading, setIsLoading] = useState(false);
   const [existingNames, setExistingNames] = useState<string[]>([]);
   const [existingModels, setExistingModels] = useState<string[]>([]);
+  const [existingManufacturers, setExistingManufacturers] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: "",
     manufacturer: "",
@@ -36,21 +36,23 @@ export const AddItemDialog = ({
     notes: "",
   });
 
-  // Загрузка существующих названий и моделей
+  // Загрузка существующих названий, моделей и производителей
   useEffect(() => {
     if (open) {
       const fetchSuggestions = async () => {
         try {
           const { data: items } = await supabase
             .from("items")
-            .select("name, model")
+            .select("name, model, manufacturer")
             .order("name");
 
           if (items) {
             const names = [...new Set(items.map(item => item.name))];
             const models = [...new Set(items.map(item => item.model).filter(Boolean))];
+            const manufacturers = [...new Set(items.map(item => item.manufacturer).filter(Boolean))];
             setExistingNames(names);
             setExistingModels(models);
+            setExistingManufacturers(manufacturers);
           }
         } catch (error) {
           console.error("Error fetching suggestions:", error);
@@ -176,12 +178,23 @@ export const AddItemDialog = ({
           </div>
 
           <div className="space-y-1.5">
-            <Label>Производитель *</Label>
-            <ManufacturerSelect
+            <Label htmlFor="manufacturer">Производитель *</Label>
+            <Input
+              id="manufacturer"
+              list="manufacturers-list"
               value={formData.manufacturer}
-              onChange={(value) => setFormData({ ...formData, manufacturer: value })}
+              onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
+              onFocus={handleInputFocus}
               disabled={isLoading}
+              placeholder="Например: Apple"
+              className="w-full"
+              autoComplete="off"
             />
+            <datalist id="manufacturers-list">
+              {existingManufacturers.map((manufacturer, index) => (
+                <option key={index} value={manufacturer} />
+              ))}
+            </datalist>
           </div>
 
           <div className="space-y-1.5">
