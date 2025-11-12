@@ -13,6 +13,7 @@ import { FilterDialog } from "@/components/FilterDialog";
 type Item = {
   id: string;
   name: string;
+  manufacturer: string;
   category: string;
   warehouse: string;
   quantity: number;
@@ -275,7 +276,10 @@ const Inventory = () => {
               <Button
                 variant={sortOrder === "asc" ? "default" : "outline"}
                 className="flex-1 text-sm px-2"
-                onClick={() => setSortOrder(sortOrder === "asc" ? null : "asc")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSortOrder(sortOrder === "asc" ? null : "asc");
+                }}
                 title="По возрастанию количества"
               >
                 <ArrowUp className="h-4 w-4 mr-1" />
@@ -284,7 +288,10 @@ const Inventory = () => {
               <Button
                 variant={sortOrder === "desc" ? "default" : "outline"}
                 className="flex-1 text-sm px-2"
-                onClick={() => setSortOrder(sortOrder === "desc" ? null : "desc")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSortOrder(sortOrder === "desc" ? null : "desc");
+                }}
                 title="По убыванию количества"
               >
                 <ArrowDown className="h-4 w-4 mr-1" />

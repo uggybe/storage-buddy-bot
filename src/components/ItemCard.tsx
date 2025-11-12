@@ -15,6 +15,7 @@ import { toast } from "sonner";
 type Item = {
   id: string;
   name: string;
+  manufacturer: string;
   model: string | null;
   category: string;
   warehouse: string;
@@ -220,6 +221,7 @@ export const ItemCard = ({
               <div className="flex items-center justify-center gap-2 flex-wrap -mt-1">
                 <Badge variant="secondary" className="text-sm px-3 py-1 h-6">{item.category}</Badge>
                 <Badge variant="outline" className="text-sm px-3 py-1 h-6">{item.warehouse}</Badge>
+                <Badge variant="outline" className="text-sm px-3 py-1 h-6">{item.manufacturer}</Badge>
               </div>
 
               {isLowStock && (

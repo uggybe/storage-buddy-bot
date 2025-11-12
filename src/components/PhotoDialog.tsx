@@ -233,8 +233,8 @@ export const PhotoDialog = ({
             </div>
           )}
 
-          {/* Upload button */}
-          <div>
+          {/* Upload and Close buttons */}
+          <div className="flex gap-2">
             <input
               ref={fileInputRef}
               type="file"
@@ -245,18 +245,14 @@ export const PhotoDialog = ({
             />
             <Button
               variant="outline"
-              className="w-full"
+              className="flex-1"
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
             >
               <Upload className="h-4 w-4 mr-2" />
               {isUploading ? 'Загрузка...' : 'Загрузить фото'}
             </Button>
-          </div>
-
-          {/* Close button */}
-          <div className="flex justify-end">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
               Закрыть
             </Button>
           </div>
