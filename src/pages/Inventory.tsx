@@ -302,7 +302,7 @@ const Inventory = () => {
         </div>
 
         {/* Background message */}
-        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0 opacity-5 text-center px-4 max-w-full">
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 pointer-events-none z-0 opacity-5 text-center px-4 max-w-full">
           <p className="text-lg sm:text-2xl md:text-4xl font-bold text-gray-500">
             Напишите Кириллу,<br />что он молодец.<br />Он обрадуется.
           </p>
