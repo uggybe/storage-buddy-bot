@@ -30,9 +30,9 @@ const AppContent = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
+      <AppContent />
       <Toaster />
       <Sonner />
-      <AppContent />
     </TooltipProvider>
   </QueryClientProvider>
 );
