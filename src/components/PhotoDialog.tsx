@@ -143,7 +143,7 @@ export const PhotoDialog = ({
       if (currentPhotoIndex >= newPhotos.length && newPhotos.length > 0) {
         setCurrentPhotoIndex(newPhotos.length - 1);
       }
-      toast.success('Фотография удалена');
+      toast.success('Удалено 🗑️');
       onSuccess();
     } catch (error) {
       console.error('Error deleting photo:', error);
