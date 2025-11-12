@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CategorySelect } from "./CategorySelect";
 import { WarehouseSelect } from "./WarehouseSelect";
+import { ManufacturerSelect } from "./ManufacturerSelect";
 
 export const AddItemDialog = ({
   open,
@@ -24,6 +25,7 @@ export const AddItemDialog = ({
   const [existingModels, setExistingModels] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: "",
+    manufacturer: "",
     model: "",
     category: "",
     warehouse: "",
@@ -69,7 +71,7 @@ export const AddItemDialog = ({
     e.preventDefault();
 
     // All fields except notes are required
-    if (!formData.name || !formData.model || !formData.category || !formData.warehouse || !formData.location) {
+    if (!formData.name || !formData.manufacturer || !formData.model || !formData.category || !formData.warehouse || !formData.location) {
       toast.error("Заполните все обязательные поля");
       return;
     }
@@ -95,6 +97,7 @@ export const AddItemDialog = ({
       // Insert item
       const { data: newItem, error } = await supabase.from("items").insert({
         name: formData.name,
+        manufacturer: formData.manufacturer,
         model: formData.model,
         category: formData.category,
         warehouse: formData.warehouse as "Мастерская" | "Холодный" | "Теплый",
@@ -115,6 +118,7 @@ export const AddItemDialog = ({
         item_name: formData.name,
         category_name: formData.category,
         details: {
+          manufacturer: formData.manufacturer,
           model: formData.model,
           warehouse: formData.warehouse,
           item_type: formData.item_type,
@@ -127,6 +131,7 @@ export const AddItemDialog = ({
       onOpenChange(false);
       setFormData({
         name: "",
+        manufacturer: "",
         model: "",
         category: "",
         warehouse: "",
@@ -168,6 +173,15 @@ export const AddItemDialog = ({
                 <option key={index} value={name} />
               ))}
             </datalist>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Производитель *</Label>
+            <ManufacturerSelect
+              value={formData.manufacturer}
+              onChange={(value) => setFormData({ ...formData, manufacturer: value })}
+              disabled={isLoading}
+            />
           </div>
 
           <div className="space-y-1.5">
