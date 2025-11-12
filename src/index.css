@@ -165,4 +165,11 @@ All colors MUST be HSL.
     margin: 0;
     padding: 0;
   }
+
+  /* Force toast notifications to be on top of everything */
+  [data-sonner-toaster],
+  .toaster,
+  [data-sonner-toast] {
+    z-index: 999999 !important;
+  }
 }
