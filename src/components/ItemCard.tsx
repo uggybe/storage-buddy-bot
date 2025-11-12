@@ -177,10 +177,9 @@ export const ItemCard = ({
           <div className="flex items-center justify-between gap-2">
             <div className="flex-1 min-w-0">
               <CardTitle className="text-base leading-tight truncate">{item.name}</CardTitle>
-              {item.model && (
-                <p className="text-xs text-muted-foreground truncate mt-0.5">{item.model}</p>
-              )}
-              <p className="text-xs text-muted-foreground truncate mt-0.5">{item.manufacturer}</p>
+              <p className="text-xs text-muted-foreground mt-0.5 break-words">
+                {item.manufacturer}{item.model ? ` · ${item.model}` : ''}
+              </p>
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0">
