@@ -20,6 +20,7 @@ export const AddItemDialog = ({
   onSuccess: () => void;
 }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [validationError, setValidationError] = useState("");
   const [existingNames, setExistingNames] = useState<string[]>([]);
   const [existingModels, setExistingModels] = useState<string[]>([]);
   const [existingManufacturers, setExistingManufacturers] = useState<string[]>([]);
@@ -39,6 +40,7 @@ export const AddItemDialog = ({
   // Загрузка существующих названий, моделей и производителей
   useEffect(() => {
     if (open) {
+      setValidationError("");
       const fetchSuggestions = async () => {
         try {
           const { data: items } = await supabase
@@ -74,9 +76,11 @@ export const AddItemDialog = ({
 
     // All fields except notes are required
     if (!formData.name || !formData.manufacturer || !formData.model || !formData.category || !formData.warehouse || !formData.location) {
-      toast.error("Заполните все обязательные поля");
+      setValidationError("Заполните все обязательные поля");
       return;
     }
+
+    setValidationError("");
 
     setIsLoading(true);
 
@@ -145,7 +149,7 @@ export const AddItemDialog = ({
       });
     } catch (error) {
       console.error("Error adding item:", error);
-      toast.error("Ошибка добавления предмета");
+      setValidationError("Ошибка добавления предмета");
     } finally {
       setIsLoading(false);
     }
@@ -300,6 +304,12 @@ export const AddItemDialog = ({
               className="w-full"
             />
           </div>
+
+          {validationError && (
+            <div className="text-red-600 text-xs text-center">
+              {validationError}
+            </div>
+          )}
 
           <div className="flex gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
