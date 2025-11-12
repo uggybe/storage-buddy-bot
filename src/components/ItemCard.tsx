@@ -180,6 +180,7 @@ export const ItemCard = ({
               {item.model && (
                 <p className="text-xs text-muted-foreground truncate mt-0.5">{item.model}</p>
               )}
+              <p className="text-xs text-muted-foreground truncate mt-0.5">{item.manufacturer}</p>
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -221,7 +222,6 @@ export const ItemCard = ({
               <div className="flex items-center justify-center gap-2 flex-wrap -mt-1">
                 <Badge variant="secondary" className="text-sm px-3 py-1 h-6">{item.category}</Badge>
                 <Badge variant="outline" className="text-sm px-3 py-1 h-6">{item.warehouse}</Badge>
-                <Badge variant="outline" className="text-sm px-3 py-1 h-6">{item.manufacturer}</Badge>
               </div>
 
               {isLowStock && (
