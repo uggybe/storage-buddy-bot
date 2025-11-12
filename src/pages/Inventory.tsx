@@ -302,11 +302,11 @@ const Inventory = () => {
         </div>
 
         {/* Background message */}
-        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0 opacity-5 text-center">
-          <p className="text-6xl font-bold text-gray-500 whitespace-nowrap">
-            Напишите Кириллу, что он молодец. Он обрадуется.
+        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0 opacity-5 text-center px-4 max-w-full">
+          <p className="text-lg sm:text-2xl md:text-4xl font-bold text-gray-500">
+            Напишите Кириллу,<br />что он молодец.<br />Он обрадуется.
           </p>
-          <p className="text-9xl mt-8">😊</p>
+          <p className="text-6xl sm:text-7xl md:text-8xl mt-4">😊</p>
         </div>
 
         <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3 relative z-10">
