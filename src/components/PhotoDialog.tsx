@@ -24,6 +24,7 @@ export const PhotoDialog = ({
 }) => {
   const [photos, setPhotos] = useState<string[]>(item.photos || []);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -90,8 +91,14 @@ export const PhotoDialog = ({
         if (error) throw error;
 
         setPhotos(newPhotos);
+        setUploadSuccess(true);
         toast.success(`Загружено ${uploadedUrls.length} фото`);
         onSuccess();
+
+        // Reset success state after 2 seconds
+        setTimeout(() => {
+          setUploadSuccess(false);
+        }, 2000);
       }
     } catch (error) {
       console.error('Error uploading photos:', error);
@@ -247,10 +254,10 @@ export const PhotoDialog = ({
               variant="outline"
               className="flex-1"
               onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
+              disabled={isUploading || uploadSuccess}
             >
               <Upload className="h-4 w-4 mr-2" />
-              {isUploading ? 'Загрузка...' : 'Загрузить фото'}
+              {isUploading ? 'Загрузка...' : uploadSuccess ? 'Загружено 😊' : 'Загрузить фото'}
             </Button>
             <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
               Закрыть
