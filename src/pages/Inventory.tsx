@@ -275,7 +275,7 @@ const Inventory = () => {
             <div className="flex gap-2">
               <Button
                 variant={sortOrder === "asc" ? "default" : "outline"}
-                className="flex-1 text-sm px-2"
+                className={`flex-1 text-sm px-2 ${sortOrder === "asc" ? "" : "bg-white hover:bg-gray-50 border-gray-300"}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   setSortOrder(sortOrder === "asc" ? null : "asc");
@@ -287,7 +287,7 @@ const Inventory = () => {
               </Button>
               <Button
                 variant={sortOrder === "desc" ? "default" : "outline"}
-                className="flex-1 text-sm px-2"
+                className={`flex-1 text-sm px-2 ${sortOrder === "desc" ? "" : "bg-white hover:bg-gray-50 border-gray-300"}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   setSortOrder(sortOrder === "desc" ? null : "desc");
