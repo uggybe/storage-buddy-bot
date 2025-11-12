@@ -176,7 +176,8 @@ const Inventory = () => {
     if (searchQuery) {
       filtered = filtered.filter(item =>
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (item.model && item.model.toLowerCase().includes(searchQuery.toLowerCase()))
+        (item.model && item.model.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (item.manufacturer && item.manufacturer.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
 
