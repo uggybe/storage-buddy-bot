@@ -301,14 +301,22 @@ const Inventory = () => {
           </div>
         </div>
 
-        <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+        {/* Background message */}
+        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0 opacity-5 text-center">
+          <p className="text-6xl font-bold text-gray-500 whitespace-nowrap">
+            Напишите Кириллу, что он молодец. Он обрадуется.
+          </p>
+          <p className="text-9xl mt-8">😊</p>
+        </div>
+
+        <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3 relative z-10">
           {filteredItems.map(item => (
             <ItemCard key={item.id} item={item} onUpdate={fetchItems} userName={`${userFirstName} ${userLastName}`.trim() || "Пользователь"} />
           ))}
         </div>
 
         {filteredItems.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-8 text-muted-foreground relative z-10">
             Предметы не найдены
           </div>
         )}
