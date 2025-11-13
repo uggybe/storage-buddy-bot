@@ -42,7 +42,7 @@ export function MultiSelect({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between"
+          className="w-full justify-between !bg-white !text-black hover:!bg-gray-50"
         >
           {displayText}
           <Check className="ml-2 h-4 w-4 shrink-0 opacity-50" />
