@@ -84,6 +84,21 @@ export const AddItemDialog = ({
 
     setIsLoading(true);
 
+    // Close dialog immediately for better UX
+    onOpenChange(false);
+    setFormData({
+      name: "",
+      manufacturer: "",
+      model: "",
+      category: "",
+      warehouse: "",
+      item_type: "множественный",
+      quantity: "1",
+      critical_quantity: "",
+      location: "",
+      notes: "",
+    });
+
     try {
       // Get authenticated user
       const { data: { session } } = await supabase.auth.getSession();
@@ -134,22 +149,10 @@ export const AddItemDialog = ({
 
       toast.success("Предмет добавлен");
       onSuccess();
-      onOpenChange(false);
-      setFormData({
-        name: "",
-        manufacturer: "",
-        model: "",
-        category: "",
-        warehouse: "",
-        item_type: "множественный",
-        quantity: "1",
-        critical_quantity: "",
-        location: "",
-        notes: "",
-      });
     } catch (error) {
       console.error("Error adding item:", error);
-      setValidationError("Ошибка добавления предмета");
+      toast.error("Ошибка добавления предмета. Обновите страницу.");
+      onSuccess();
     } finally {
       setIsLoading(false);
     }

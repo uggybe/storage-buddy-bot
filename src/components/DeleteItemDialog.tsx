@@ -22,57 +22,63 @@ export const DeleteItemDialog = ({
   const handleDelete = async () => {
     setIsLoading(true);
 
+    // Optimistic update - close dialog and update UI immediately
+    onOpenChange(false);
+    onSuccess();
+
     try {
       // Get authenticated user
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) throw new Error("Not authenticated");
 
-      // Get user's app_users record
-      const { data: appUser } = await supabase
-        .from("app_users")
-        .select("id")
-        .eq("user_id", session.user.id)
-        .single();
+      // Get user's app_users record and item details in parallel
+      const [appUserResult, itemDataResult] = await Promise.all([
+        supabase
+          .from("app_users")
+          .select("id")
+          .eq("user_id", session.user.id)
+          .single(),
+        supabase
+          .from("items")
+          .select("*")
+          .eq("id", itemId)
+          .single()
+      ]);
+
+      const appUser = appUserResult.data;
+      const itemData = itemDataResult.data;
 
       if (!appUser) throw new Error("User profile not found");
 
-      // Get item details before deletion
-      const { data: itemData } = await supabase
-        .from("items")
-        .select("*")
-        .eq("id", itemId)
-        .single();
-
-      // Log the action before deletion
-      await supabase.from("transactions").insert({
-        item_id: itemId,
-        user_id: appUser.id,
-        action: "удалено",
-        quantity: itemData?.quantity || 0,
-        item_name: itemName,
-        category_name: itemData?.category,
-        details: itemData ? {
-          model: itemData.model,
-          warehouse: itemData.warehouse,
-          item_type: itemData.item_type,
-          location: itemData.location,
-        } : null,
-      });
-
-      // Delete item
-      const { error } = await supabase
-        .from("items")
-        .delete()
-        .eq("id", itemId);
-
-      if (error) throw error;
+      // Log the action and delete item in parallel
+      await Promise.all([
+        supabase.from("transactions").insert({
+          item_id: itemId,
+          user_id: appUser.id,
+          action: "удалено",
+          quantity: itemData?.quantity || 0,
+          item_name: itemName,
+          category_name: itemData?.category,
+          details: itemData ? {
+            model: itemData.model,
+            manufacturer: itemData.manufacturer,
+            warehouse: itemData.warehouse,
+            item_type: itemData.item_type,
+            location: itemData.location,
+          } : null,
+        }),
+        supabase
+          .from("items")
+          .delete()
+          .eq("id", itemId)
+      ]);
 
       toast.success("Предмет удален");
-      onSuccess();
-      onOpenChange(false);
     } catch (error) {
       console.error("Error deleting item:", error);
-      toast.error("Ошибка удаления предмета");
+      toast.error("Ошибка удаления предмета. Обновите страницу.");
+      // Re-fetch to restore correct state
+      onSuccess();
     } finally {
       setIsLoading(false);
     }

@@ -28,14 +28,15 @@ const Inventory = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [warehouses, setWarehouses] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedWarehouse, setSelectedWarehouse] = useState<string>("all");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [selectedItemType, setSelectedItemType] = useState<string>("all");
+  const [selectedWarehouses, setSelectedWarehouses] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedItemTypes, setSelectedItemTypes] = useState<string[]>([]);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
-  const [userFirstName, setUserFirstName] = useState("");
-  const [userLastName, setUserLastName] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [userFirstName, setUserFirstName] = useState(() => sessionStorage.getItem('userFirstName') || "");
+  const [userLastName, setUserLastName] = useState(() => sessionStorage.getItem('userLastName') || "");
 
   useEffect(() => {
     // Check authentication status
@@ -75,8 +76,15 @@ const Inventory = () => {
         .eq('telegram_id', telegramId)
         .single();
 
-      setUserLastName(whitelistData?.last_name || '');
-      setUserFirstName(whitelistData?.first_name || '');
+      const lastName = whitelistData?.last_name || '';
+      const firstName = whitelistData?.first_name || '';
+
+      setUserLastName(lastName);
+      setUserFirstName(firstName);
+
+      // Save to sessionStorage for instant access on next mount
+      sessionStorage.setItem('userLastName', lastName);
+      sessionStorage.setItem('userFirstName', firstName);
 
       fetchWarehouses();
       fetchItems();
@@ -167,6 +175,8 @@ const Inventory = () => {
     } catch (error) {
       console.error("Error fetching items:", error);
       toast.error("Ошибка загрузки данных");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -181,16 +191,16 @@ const Inventory = () => {
       );
     }
 
-    if (selectedWarehouse !== "all") {
-      filtered = filtered.filter(item => item.warehouse === selectedWarehouse);
+    if (selectedWarehouses.length > 0) {
+      filtered = filtered.filter(item => selectedWarehouses.includes(item.warehouse));
     }
 
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter(item => item.category === selectedCategory);
+    if (selectedCategories.length > 0) {
+      filtered = filtered.filter(item => selectedCategories.includes(item.category));
     }
 
-    if (selectedItemType !== "all") {
-      filtered = filtered.filter(item => item.item_type === selectedItemType);
+    if (selectedItemTypes.length > 0) {
+      filtered = filtered.filter(item => selectedItemTypes.includes(item.item_type));
     }
 
     // Apply sorting
@@ -203,7 +213,7 @@ const Inventory = () => {
     }
 
     setFilteredItems(filtered);
-  }, [items, searchQuery, selectedWarehouse, selectedCategory, selectedItemType, sortOrder]);
+  }, [items, searchQuery, selectedWarehouses, selectedCategories, selectedItemTypes, sortOrder]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -253,17 +263,17 @@ const Inventory = () => {
             </div>
 
             <Button
-              variant="default"
+              variant="outline"
               onClick={() => setIsFilterDialogOpen(true)}
-              className="w-full"
+              className="w-full !bg-white !text-black hover:!bg-gray-50"
             >
               <Filter className="h-4 w-4 mr-2" />
               Фильтры
               {(() => {
                 const activeFiltersCount =
-                  (selectedWarehouse !== "all" ? 1 : 0) +
-                  (selectedCategory !== "all" ? 1 : 0) +
-                  (selectedItemType !== "all" ? 1 : 0);
+                  selectedWarehouses.length +
+                  selectedCategories.length +
+                  selectedItemTypes.length;
 
                 return activeFiltersCount > 0 ? (
                   <span className="ml-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-semibold">
@@ -310,16 +320,29 @@ const Inventory = () => {
           <p className="text-6xl sm:text-7xl md:text-8xl mt-4">😊</p>
         </div>
 
-        <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3 relative z-10">
-          {filteredItems.map(item => (
-            <ItemCard key={item.id} item={item} onUpdate={fetchItems} userName={`${userFirstName} ${userLastName}`.trim() || "Пользователь"} />
-          ))}
-        </div>
-
-        {filteredItems.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground relative z-10">
-            Предметы не найдены
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12 relative z-10">
+            <div className="text-center">
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" role="status">
+                <span className="sr-only">Загрузка...</span>
+              </div>
+              <p className="mt-3 text-sm text-muted-foreground">Загрузка предметов...</p>
+            </div>
           </div>
+        ) : (
+          <>
+            <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3 relative z-10">
+              {filteredItems.map(item => (
+                <ItemCard key={item.id} item={item} onUpdate={fetchItems} userName={`${userFirstName} ${userLastName}`.trim() || "Пользователь"} />
+              ))}
+            </div>
+
+            {filteredItems.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground relative z-10">
+                Предметы не найдены
+              </div>
+            )}
+          </>
         )}
       </main>
 
@@ -334,16 +357,16 @@ const Inventory = () => {
         onOpenChange={setIsFilterDialogOpen}
         warehouses={warehouses}
         categories={categories}
-        selectedWarehouse={selectedWarehouse}
-        selectedCategory={selectedCategory}
-        selectedItemType={selectedItemType}
-        onWarehouseChange={setSelectedWarehouse}
-        onCategoryChange={setSelectedCategory}
-        onItemTypeChange={setSelectedItemType}
+        selectedWarehouses={selectedWarehouses}
+        selectedCategories={selectedCategories}
+        selectedItemTypes={selectedItemTypes}
+        onWarehouseChange={setSelectedWarehouses}
+        onCategoryChange={setSelectedCategories}
+        onItemTypeChange={setSelectedItemTypes}
         onReset={() => {
-          setSelectedWarehouse("all");
-          setSelectedCategory("all");
-          setSelectedItemType("all");
+          setSelectedWarehouses([]);
+          setSelectedCategories([]);
+          setSelectedItemTypes([]);
         }}
       />
     </div>
