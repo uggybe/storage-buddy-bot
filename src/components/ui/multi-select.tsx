@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Check } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,7 +45,7 @@ export function MultiSelect({
           className="w-full justify-between !bg-white !text-black hover:!bg-gray-50"
         >
           {displayText}
-          <Check className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-full p-0" align="start">
@@ -53,7 +53,7 @@ export function MultiSelect({
           {options.map((option) => (
             <div
               key={option}
-              className="flex items-center space-x-2 rounded-sm px-2 py-2 hover:bg-accent cursor-pointer"
+              className="flex items-center space-x-2 rounded-sm px-2 py-2 hover:bg-gray-50 cursor-pointer"
               onClick={() => handleToggle(option)}
             >
               <Checkbox
