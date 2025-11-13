@@ -28,9 +28,9 @@ const Inventory = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [warehouses, setWarehouses] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedWarehouse, setSelectedWarehouse] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedItemType, setSelectedItemType] = useState("");
+  const [selectedWarehouses, setSelectedWarehouses] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedItemTypes, setSelectedItemTypes] = useState<string[]>([]);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
@@ -191,16 +191,16 @@ const Inventory = () => {
       );
     }
 
-    if (selectedWarehouse) {
-      filtered = filtered.filter(item => item.warehouse === selectedWarehouse);
+    if (selectedWarehouses.length > 0) {
+      filtered = filtered.filter(item => selectedWarehouses.includes(item.warehouse));
     }
 
-    if (selectedCategory) {
-      filtered = filtered.filter(item => item.category === selectedCategory);
+    if (selectedCategories.length > 0) {
+      filtered = filtered.filter(item => selectedCategories.includes(item.category));
     }
 
-    if (selectedItemType) {
-      filtered = filtered.filter(item => item.item_type === selectedItemType);
+    if (selectedItemTypes.length > 0) {
+      filtered = filtered.filter(item => selectedItemTypes.includes(item.item_type));
     }
 
     // Apply sorting
@@ -213,7 +213,7 @@ const Inventory = () => {
     }
 
     setFilteredItems(filtered);
-  }, [items, searchQuery, selectedWarehouse, selectedCategory, selectedItemType, sortOrder]);
+  }, [items, searchQuery, selectedWarehouses, selectedCategories, selectedItemTypes, sortOrder]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -271,9 +271,9 @@ const Inventory = () => {
               Фильтры
               {(() => {
                 const activeFiltersCount =
-                  (selectedWarehouse ? 1 : 0) +
-                  (selectedCategory ? 1 : 0) +
-                  (selectedItemType ? 1 : 0);
+                  selectedWarehouses.length +
+                  selectedCategories.length +
+                  selectedItemTypes.length;
 
                 return activeFiltersCount > 0 ? (
                   <span className="ml-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-semibold">
@@ -357,16 +357,16 @@ const Inventory = () => {
         onOpenChange={setIsFilterDialogOpen}
         warehouses={warehouses}
         categories={categories}
-        selectedWarehouse={selectedWarehouse}
-        selectedCategory={selectedCategory}
-        selectedItemType={selectedItemType}
-        onWarehouseChange={setSelectedWarehouse}
-        onCategoryChange={setSelectedCategory}
-        onItemTypeChange={setSelectedItemType}
+        selectedWarehouses={selectedWarehouses}
+        selectedCategories={selectedCategories}
+        selectedItemTypes={selectedItemTypes}
+        onWarehouseChange={setSelectedWarehouses}
+        onCategoryChange={setSelectedCategories}
+        onItemTypeChange={setSelectedItemTypes}
         onReset={() => {
-          setSelectedWarehouse("");
-          setSelectedCategory("");
-          setSelectedItemType("");
+          setSelectedWarehouses([]);
+          setSelectedCategories([]);
+          setSelectedItemTypes([]);
         }}
       />
     </div>
