@@ -103,8 +103,11 @@ export const CopyItemDialog = ({
       return;
     }
 
-    // Валидация: проверка на дубль по модели
-    if (existingModels.includes(formData.model)) {
+    // Валидация: проверка на дубль по модели (case-insensitive)
+    const modelExists = existingModels.some(
+      model => model.toLowerCase() === formData.model.toLowerCase()
+    );
+    if (modelExists) {
       setValidationError("Такой предмет уже существует");
       return;
     }

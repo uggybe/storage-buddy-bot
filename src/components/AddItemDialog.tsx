@@ -22,6 +22,7 @@ export const AddItemDialog = ({
   const [isLoading, setIsLoading] = useState(false);
   const [validationError, setValidationError] = useState("");
   const [existingNames, setExistingNames] = useState<string[]>([]);
+  const [existingModels, setExistingModels] = useState<string[]>([]);
   const [existingManufacturers, setExistingManufacturers] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: "",
@@ -44,13 +45,15 @@ export const AddItemDialog = ({
         try {
           const { data: items } = await supabase
             .from("items")
-            .select("name, manufacturer")
+            .select("name, model, manufacturer")
             .order("name");
 
           if (items) {
             const names = [...new Set(items.map(item => item.name))];
+            const models = items.map(item => item.model).filter(Boolean);
             const manufacturers = [...new Set(items.map(item => item.manufacturer).filter(Boolean))];
             setExistingNames(names);
+            setExistingModels(models);
             setExistingManufacturers(manufacturers);
           }
         } catch (error) {
@@ -74,6 +77,15 @@ export const AddItemDialog = ({
     // All fields except notes are required
     if (!formData.name || !formData.manufacturer || !formData.model || !formData.category || !formData.warehouse || !formData.location) {
       setValidationError("Заполните все обязательные поля");
+      return;
+    }
+
+    // Валидация: проверка на дубль по модели (case-insensitive)
+    const modelExists = existingModels.some(
+      model => model.toLowerCase() === formData.model.toLowerCase()
+    );
+    if (modelExists) {
+      setValidationError("Такой предмет уже существует");
       return;
     }
 
@@ -206,7 +218,13 @@ export const AddItemDialog = ({
             <Input
               id="model"
               value={formData.model}
-              onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, model: e.target.value });
+                // Очищаем ошибку при изменении модели
+                if (validationError === "Такой предмет уже существует") {
+                  setValidationError("");
+                }
+              }}
               onFocus={handleInputFocus}
               disabled={isLoading}
               placeholder="Например: iPhone 13 Pro"

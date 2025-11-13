@@ -180,11 +180,21 @@ export const ItemCard = ({
     setIsTakeDialogOpen(true);
   };
 
-  const handleLongPressStart = (e: React.TouchEvent | React.MouseEvent) => {
+  const handleTouchStart = (e: React.TouchEvent) => {
     e.stopPropagation();
     longPressTimer.current = setTimeout(() => {
       setIsContextMenuOpen(true);
     }, 500); // 500ms for long press
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    // Только для правой кнопки мыши
+    if (e.button === 2) {
+      e.stopPropagation();
+      longPressTimer.current = setTimeout(() => {
+        setIsContextMenuOpen(true);
+      }, 500);
+    }
   };
 
   const handleLongPressEnd = () => {
@@ -203,14 +213,15 @@ export const ItemCard = ({
   return (
     <>
       <Card
-        className={`${getBorderColor()} cursor-pointer transition-all`}
+        className={`${getBorderColor()} cursor-pointer transition-all select-none`}
         onClick={() => setIsExpanded(!isExpanded)}
-        onTouchStart={handleLongPressStart}
+        onTouchStart={handleTouchStart}
         onTouchEnd={handleLongPressEnd}
-        onMouseDown={handleLongPressStart}
+        onMouseDown={handleMouseDown}
         onMouseUp={handleLongPressEnd}
         onMouseLeave={handleLongPressEnd}
         onContextMenu={handleContextMenu}
+        style={{ WebkitUserSelect: 'none', userSelect: 'none', WebkitTouchCallout: 'none' }}
       >
         <CardHeader className="py-2 px-3">
           <div className="flex items-center justify-between gap-2">
