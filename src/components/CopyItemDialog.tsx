@@ -10,19 +10,33 @@ import { toast } from "sonner";
 import { CategorySelect } from "./CategorySelect";
 import { WarehouseSelect } from "./WarehouseSelect";
 
-export const AddItemDialog = ({
+type Item = {
+  id: string;
+  name: string;
+  manufacturer: string;
+  model: string;
+  category: string;
+  warehouse: string;
+  item_type: "единичный" | "множественный";
+  quantity: number;
+  location: string;
+  notes: string | null;
+};
+
+export const CopyItemDialog = ({
   open,
   onOpenChange,
   onSuccess,
+  sourceItem,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  sourceItem: Item | null;
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [validationError, setValidationError] = useState("");
-  const [existingNames, setExistingNames] = useState<string[]>([]);
-  const [existingManufacturers, setExistingManufacturers] = useState<string[]>([]);
+  const [existingModels, setExistingModels] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: "",
     manufacturer: "",
@@ -31,35 +45,47 @@ export const AddItemDialog = ({
     warehouse: "",
     item_type: "множественный" as "единичный" | "множественный",
     quantity: "1",
-    critical_quantity: "",
     location: "",
     notes: "",
   });
 
-  // Загрузка существующих названий, моделей и производителей
+  // Загрузка существующих моделей и заполнение формы при открытии
   useEffect(() => {
-    if (open) {
+    if (open && sourceItem) {
       setValidationError("");
-      const fetchSuggestions = async () => {
+
+      // Заполняем форму данными из sourceItem
+      setFormData({
+        name: sourceItem.name,
+        manufacturer: sourceItem.manufacturer,
+        model: sourceItem.model,
+        category: sourceItem.category,
+        warehouse: sourceItem.warehouse,
+        item_type: sourceItem.item_type,
+        quantity: sourceItem.quantity.toString(),
+        location: sourceItem.location,
+        notes: sourceItem.notes || "",
+      });
+
+      // Загружаем существующие модели для валидации
+      const fetchModels = async () => {
         try {
           const { data: items } = await supabase
             .from("items")
-            .select("name, manufacturer")
-            .order("name");
+            .select("model")
+            .order("model");
 
           if (items) {
-            const names = [...new Set(items.map(item => item.name))];
-            const manufacturers = [...new Set(items.map(item => item.manufacturer).filter(Boolean))];
-            setExistingNames(names);
-            setExistingManufacturers(manufacturers);
+            const models = items.map(item => item.model).filter(Boolean);
+            setExistingModels(models);
           }
         } catch (error) {
-          console.error("Error fetching suggestions:", error);
+          console.error("Error fetching models:", error);
         }
       };
-      fetchSuggestions();
+      fetchModels();
     }
-  }, [open]);
+  }, [open, sourceItem]);
 
   const handleInputFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     // Scroll to input after keyboard appears
@@ -77,24 +103,14 @@ export const AddItemDialog = ({
       return;
     }
 
+    // Валидация: проверка на дубль по модели
+    if (existingModels.includes(formData.model)) {
+      setValidationError("Такой предмет уже существует");
+      return;
+    }
+
     setValidationError("");
-
     setIsLoading(true);
-
-    // Close dialog immediately for better UX
-    onOpenChange(false);
-    setFormData({
-      name: "",
-      manufacturer: "",
-      model: "",
-      category: "",
-      warehouse: "",
-      item_type: "множественный",
-      quantity: "1",
-      critical_quantity: "",
-      location: "",
-      notes: "",
-    });
 
     try {
       // Get authenticated user
@@ -144,12 +160,12 @@ export const AddItemDialog = ({
         },
       });
 
-      toast.success("Предмет добавлен");
+      toast.success("Предмет скопирован");
+      onOpenChange(false);
       onSuccess();
     } catch (error) {
-      console.error("Error adding item:", error);
-      toast.error("Ошибка добавления предмета. Обновите страницу.");
-      onSuccess();
+      console.error("Error copying item:", error);
+      toast.error("Ошибка копирования предмета");
     } finally {
       setIsLoading(false);
     }
@@ -159,14 +175,13 @@ export const AddItemDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle>Добавить предмет</DialogTitle>
+          <DialogTitle>Копировать предмет</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-2">
           <div className="space-y-1.5">
             <Label htmlFor="name">Название *</Label>
             <Input
               id="name"
-              list="names-list"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               onFocus={handleInputFocus}
@@ -174,18 +189,12 @@ export const AddItemDialog = ({
               className="w-full"
               autoComplete="off"
             />
-            <datalist id="names-list">
-              {existingNames.map((name, index) => (
-                <option key={index} value={name} />
-              ))}
-            </datalist>
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="manufacturer">Производитель *</Label>
             <Input
               id="manufacturer"
-              list="manufacturers-list"
               value={formData.manufacturer}
               onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
               onFocus={handleInputFocus}
@@ -194,11 +203,6 @@ export const AddItemDialog = ({
               className="w-full"
               autoComplete="off"
             />
-            <datalist id="manufacturers-list">
-              {existingManufacturers.map((manufacturer, index) => (
-                <option key={index} value={manufacturer} />
-              ))}
-            </datalist>
           </div>
 
           <div className="space-y-1.5">
@@ -206,7 +210,13 @@ export const AddItemDialog = ({
             <Input
               id="model"
               value={formData.model}
-              onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, model: e.target.value });
+                // Очищаем ошибку при изменении модели
+                if (validationError === "Такой предмет уже существует") {
+                  setValidationError("");
+                }
+              }}
               onFocus={handleInputFocus}
               disabled={isLoading}
               placeholder="Например: iPhone 13 Pro"
@@ -267,9 +277,6 @@ export const AddItemDialog = ({
                 disabled={isLoading}
                 className="w-full"
               />
-              <p className="text-xs text-muted-foreground">
-                Минимальное количество настраивается в категории
-              </p>
             </div>
           )}
 
@@ -310,7 +317,7 @@ export const AddItemDialog = ({
               Отмена
             </Button>
             <Button type="submit" disabled={isLoading} className="flex-1">
-              {isLoading ? "Сохранение..." : "Добавить"}
+              {isLoading ? "Копирование..." : "Копировать"}
             </Button>
           </div>
         </form>
