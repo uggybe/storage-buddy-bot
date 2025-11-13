@@ -1,14 +1,21 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Package, AlertTriangle, Edit, Trash2, Paperclip } from "lucide-react";
+import { Package, AlertTriangle, Edit, Trash2, Paperclip, Copy } from "lucide-react";
 import { TakeItemDialog } from "./TakeItemDialog";
 import { ReturnItemDialog } from "./ReturnItemDialog";
 import { EditItemDialog } from "./EditItemDialog";
 import { DeleteItemDialog } from "./DeleteItemDialog";
 import { AddQuantityDialog } from "./AddQuantityDialog";
 import { PhotoDialog } from "./PhotoDialog";
+import { CopyItemDialog } from "./CopyItemDialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -60,10 +67,13 @@ export const ItemCard = ({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isPhotoDialogOpen, setIsPhotoDialogOpen] = useState(false);
+  const [isCopyDialogOpen, setIsCopyDialogOpen] = useState(false);
+  const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [purpose, setPurpose] = useState<string | null>(null);
   const [categoryCriticalQuantity, setCategoryCriticalQuantity] = useState<number>(0);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch category critical quantity
   useEffect(() => {
@@ -170,9 +180,38 @@ export const ItemCard = ({
     setIsTakeDialogOpen(true);
   };
 
+  const handleLongPressStart = (e: React.TouchEvent | React.MouseEvent) => {
+    e.stopPropagation();
+    longPressTimer.current = setTimeout(() => {
+      setIsContextMenuOpen(true);
+    }, 500); // 500ms for long press
+  };
+
+  const handleLongPressEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsContextMenuOpen(true);
+  };
+
   return (
     <>
-      <Card className={`${getBorderColor()} cursor-pointer transition-all`} onClick={() => setIsExpanded(!isExpanded)}>
+      <Card
+        className={`${getBorderColor()} cursor-pointer transition-all`}
+        onClick={() => setIsExpanded(!isExpanded)}
+        onTouchStart={handleLongPressStart}
+        onTouchEnd={handleLongPressEnd}
+        onMouseDown={handleLongPressStart}
+        onMouseUp={handleLongPressEnd}
+        onMouseLeave={handleLongPressEnd}
+        onContextMenu={handleContextMenu}
+      >
         <CardHeader className="py-2 px-3">
           <div className="flex items-center justify-between gap-2">
             <div className="flex-1 min-w-0">
@@ -410,6 +449,56 @@ export const ItemCard = ({
         item={item}
         onSuccess={onUpdate}
       />
+
+      <CopyItemDialog
+        open={isCopyDialogOpen}
+        onOpenChange={setIsCopyDialogOpen}
+        onSuccess={onUpdate}
+        sourceItem={item}
+      />
+
+      <Sheet open={isContextMenuOpen} onOpenChange={setIsContextMenuOpen}>
+        <SheetContent side="bottom" className="max-h-[50vh]">
+          <SheetHeader>
+            <SheetTitle>Действия</SheetTitle>
+          </SheetHeader>
+          <div className="grid gap-2 py-4">
+            <Button
+              variant="outline"
+              className="w-full justify-start text-left h-12"
+              onClick={() => {
+                setIsContextMenuOpen(false);
+                setIsEditDialogOpen(true);
+              }}
+            >
+              <Edit className="mr-2 h-4 w-4" />
+              Редактировать
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start text-left h-12"
+              onClick={() => {
+                setIsContextMenuOpen(false);
+                setIsCopyDialogOpen(true);
+              }}
+            >
+              <Copy className="mr-2 h-4 w-4" />
+              Копировать
+            </Button>
+            <Button
+              variant="destructive"
+              className="w-full justify-start text-left h-12"
+              onClick={() => {
+                setIsContextMenuOpen(false);
+                setIsDeleteDialogOpen(true);
+              }}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Удалить
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </>
   );
 };
