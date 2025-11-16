@@ -341,25 +341,6 @@ const Inventory = () => {
 
         const { items, categories, warehouses, photos, app_users } = backup.data;
 
-        // Count photos from both photos object and items
-        const photosCount = photos ? Object.keys(photos).length : 0;
-        const itemsWithPhotos = items ? items.filter((item: any) => item.photos && item.photos.length > 0).length : 0;
-
-        // Confirm restoration
-        const confirmed = window.confirm(
-          `Восстановить базу данных?\n\n` +
-          `Предметов: ${items?.length || 0}\n` +
-          `Категорий: ${categories?.length || 0}\n` +
-          `Складов: ${warehouses?.length || 0}\n` +
-          `Пользователей: ${app_users?.length || 0}\n` +
-          `Фотографий: ${photosCount}${itemsWithPhotos > 0 ? ` (у ${itemsWithPhotos} предметов)` : ''}\n\n` +
-          `⚠️ ВНИМАНИЕ: Существующие данные будут удалены!`
-        );
-
-        if (!confirmed) {
-          return;
-        }
-
         // Single progress toast
         toast.info("Восстановление базы данных... Пожалуйста, подождите.");
 
