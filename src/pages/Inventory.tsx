@@ -9,6 +9,13 @@ import logo from "@/assets/logo.png";
 import { ItemCard } from "@/components/ItemCard";
 import { AddItemDialog } from "@/components/AddItemDialog";
 import { FilterDialog } from "@/components/FilterDialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 
 type Item = {
   id: string;
@@ -34,6 +41,7 @@ const Inventory = () => {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
+  const [isDatabaseMenuOpen, setIsDatabaseMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [userName, setUserName] = useState(() => sessionStorage.getItem('userName') || "");
 
@@ -260,6 +268,92 @@ const Inventory = () => {
     }
   };
 
+  const importDatabase = async () => {
+    // Create file input
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json,.json';
+
+    input.onchange = async (e: any) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      try {
+        toast.info("Чтение файла...");
+
+        // Read file
+        const text = await file.text();
+        const backup = JSON.parse(text);
+
+        // Validate structure
+        if (!backup.data || !backup.version) {
+          throw new Error("Неверный формат файла резервной копии");
+        }
+
+        const { items, categories, warehouses } = backup.data;
+
+        // Confirm restoration
+        const confirmed = window.confirm(
+          `Восстановить базу данных?\n\n` +
+          `Предметов: ${items?.length || 0}\n` +
+          `Категорий: ${categories?.length || 0}\n` +
+          `Складов: ${warehouses?.length || 0}\n\n` +
+          `⚠️ ВНИМАНИЕ: Существующие данные будут удалены!`
+        );
+
+        if (!confirmed) {
+          toast.info("Восстановление отменено");
+          return;
+        }
+
+        toast.info("Восстановление базы данных...");
+
+        // Delete existing data (in reverse order due to foreign keys)
+        await supabase.from("transactions").delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        await supabase.from("items").delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+        // Restore warehouses first (if any)
+        if (warehouses && warehouses.length > 0) {
+          const { error: whError } = await supabase.from("warehouses").insert(warehouses);
+          if (whError) console.error("Warning: warehouses restore error:", whError);
+        }
+
+        // Restore categories (if any)
+        if (categories && categories.length > 0) {
+          const { error: catError } = await supabase.from("categories").insert(categories);
+          if (catError) console.error("Warning: categories restore error:", catError);
+        }
+
+        // Restore items
+        if (items && items.length > 0) {
+          // Insert in batches of 100 to avoid payload size limits
+          const batchSize = 100;
+          for (let i = 0; i < items.length; i += batchSize) {
+            const batch = items.slice(i, i + batchSize);
+            const { error: itemError } = await supabase.from("items").insert(batch);
+            if (itemError) {
+              console.error("Error restoring items batch:", itemError);
+              throw itemError;
+            }
+          }
+        }
+
+        toast.success(`✅ База данных восстановлена! (${items?.length || 0} предметов)`);
+
+        // Refresh data
+        fetchItems();
+        fetchWarehouses();
+        setIsDatabaseMenuOpen(false);
+
+      } catch (error: any) {
+        console.error("Error importing database:", error);
+        toast.error("Ошибка восстановления: " + (error.message || "Неизвестная ошибка"));
+      }
+    };
+
+    input.click();
+  };
+
   useEffect(() => {
     let filtered = items;
 
@@ -308,8 +402,8 @@ const Inventory = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={exportDatabase}
-                title="Скачать резервную копию БД"
+                onClick={() => setIsDatabaseMenuOpen(true)}
+                title="Управление базой данных"
                 className="flex-shrink-0 h-8 w-8 p-0"
               >
                 <Database className="h-4 w-4" />
@@ -456,6 +550,40 @@ const Inventory = () => {
           setSelectedItemTypes([]);
         }}
       />
+
+      <Sheet open={isDatabaseMenuOpen} onOpenChange={setIsDatabaseMenuOpen}>
+        <SheetContent side="bottom" className="h-auto">
+          <SheetHeader>
+            <SheetTitle>Управление базой данных</SheetTitle>
+            <SheetDescription>
+              Экспорт и восстановление данных
+            </SheetDescription>
+          </SheetHeader>
+          <div className="grid gap-3 py-4">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => {
+                importDatabase();
+              }}
+              className="w-full text-base"
+            >
+              📥 Восстановить БД
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => {
+                exportDatabase();
+                setIsDatabaseMenuOpen(false);
+              }}
+              className="w-full text-base"
+            >
+              📦 Скачать БД
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
