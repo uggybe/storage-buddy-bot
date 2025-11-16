@@ -121,6 +121,8 @@ const TransactionLog = () => {
         return `Изменил склад`;
       case "склад удален":
         return `Удалил склад`;
+      case "имя изменено":
+        return `Изменил имя в Telegram`;
       default:
         return action;
     }
@@ -207,6 +209,8 @@ const TransactionLog = () => {
         return "text-teal-600 bg-teal-50 border-teal-200";
       case "склад удален":
         return "text-orange-600 bg-orange-50 border-orange-200";
+      case "имя изменено":
+        return "text-sky-600 bg-sky-50 border-sky-200";
       default:
         return "text-gray-600 bg-gray-50 border-gray-200";
     }
@@ -497,6 +501,15 @@ const TransactionLog = () => {
 
                     {/* Show all changes for edit action */}
                     {transaction.action === "изменено" && renderChanges(transaction.details)}
+
+                    {/* Show name change details */}
+                    {transaction.action === "имя изменено" && transaction.details && (
+                      <div className="text-xs mt-1.5 bg-white/50 dark:bg-black/20 rounded px-2 py-1.5 border border-current/20">
+                        <span className="font-semibold">Старое имя:</span> {transaction.details.old_name}
+                        <span className="mx-2">→</span>
+                        <span className="font-semibold">Новое имя:</span> {transaction.details.new_name}
+                      </div>
+                    )}
                   </div>
                   <div className="text-xs text-muted-foreground flex-shrink-0">
                     {formatDate(transaction.created_at)}

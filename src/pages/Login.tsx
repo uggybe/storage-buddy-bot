@@ -141,6 +141,42 @@ const Login = () => {
         }
       } else {
         console.log("Sign in successful");
+
+        // Check if user's Telegram name has changed
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (currentSession?.user) {
+          const { data: appUser } = await supabase
+            .from('app_users')
+            .select('id, name')
+            .eq('user_id', currentSession.user.id)
+            .single();
+
+          if (appUser && appUser.name !== userName) {
+            console.log(`Name changed from "${appUser.name}" to "${userName}"`);
+
+            // Update name in app_users
+            await supabase
+              .from('app_users')
+              .update({ name: userName })
+              .eq('user_id', currentSession.user.id);
+
+            // Log the name change
+            await supabase
+              .from('transactions')
+              .insert({
+                user_id: appUser.id,
+                action: 'имя изменено',
+                quantity: 0,
+                item_name: null,
+                category_name: null,
+                details: {
+                  old_name: appUser.name,
+                  new_name: userName,
+                  telegram_id: telegramId
+                }
+              });
+          }
+        }
       }
 
       // Check session after auth
