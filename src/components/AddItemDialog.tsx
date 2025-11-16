@@ -122,7 +122,7 @@ export const AddItemDialog = ({
 
       if (!appUser) throw new Error("User profile not found");
 
-      const numQuantity = parseInt(formData.quantity) || 1;
+      const numQuantity = formData.quantity === "" ? 1 : Math.max(0, parseInt(formData.quantity));
 
       // Insert item
       const { data: newItem, error } = await supabase.from("items").insert({
