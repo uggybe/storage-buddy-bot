@@ -128,7 +128,7 @@ const Login = () => {
         console.log("Sign in successful");
       }
 
-      // Check session and update user name from whitelist
+      // Check session and update user name from Telegram
       setDebugInfo("Проверка данных пользователя...");
       const { data: { session: currentSession } } = await supabase.auth.getSession();
 
@@ -136,26 +136,8 @@ const Login = () => {
         // Wait a bit for trigger to create app_users record (for new sign-ups)
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Get name from whitelist (source of truth for names)
-        const { data: whitelistData } = await supabase
-          .from('whitelist')
-          .select('first_name, last_name')
-          .eq('telegram_id', telegramId)
-          .single();
-
-        // Construct name from whitelist (last_name + first_name)
-        let whitelistName = '';
-        if (whitelistData) {
-          if (whitelistData.last_name) {
-            whitelistName = whitelistData.last_name + (whitelistData.first_name ? ' ' + whitelistData.first_name : '');
-          } else {
-            whitelistName = whitelistData.first_name || '';
-          }
-          whitelistName = whitelistName.trim();
-        }
-
-        // Use whitelist name if available, otherwise fall back to Telegram name
-        const finalName = whitelistName || userName;
+        // Current name from Telegram (already constructed as "first_name last_name")
+        const currentTelegramName = userName;
 
         const { data: appUser } = await supabase
           .from('app_users')
@@ -165,13 +147,13 @@ const Login = () => {
 
         if (appUser) {
           // Check if name changed
-          if (appUser.name !== finalName) {
-            console.log(`Name changed from "${appUser.name}" to "${finalName}"`);
+          if (appUser.name !== currentTelegramName) {
+            console.log(`Name changed from "${appUser.name}" to "${currentTelegramName}"`);
 
             // Update name in app_users
             await supabase
               .from('app_users')
-              .update({ name: finalName })
+              .update({ name: currentTelegramName })
               .eq('user_id', currentSession.user.id);
 
             // Log the name change (only if it's not a brand new user)
@@ -186,17 +168,17 @@ const Login = () => {
                   category_name: null,
                   details: {
                     old_name: appUser.name,
-                    new_name: finalName,
+                    new_name: currentTelegramName,
                     telegram_id: telegramId
                   }
                 });
 
-              console.log(`Имя обновлено: ${appUser.name} → ${finalName}`);
+              console.log(`Имя обновлено: ${appUser.name} → ${currentTelegramName}`);
             }
           }
 
           // Always save current name to sessionStorage
-          sessionStorage.setItem('userName', finalName);
+          sessionStorage.setItem('userName', currentTelegramName);
         }
       }
 
