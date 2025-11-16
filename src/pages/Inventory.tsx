@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, BookOpen, ArrowUp, ArrowDown, Filter, Database } from "lucide-react";
+import { Plus, Search, BookOpen, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 import { ItemCard } from "@/components/ItemCard";
@@ -486,20 +486,62 @@ const Inventory = () => {
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-1">
           <div className="flex items-center justify-between gap-2">
-            <img src={logo} alt="ЦЭПП Services" className="h-10" />
+            <img
+              src={logo}
+              alt="ЦЭПП Services"
+              className="h-10 cursor-pointer select-none active:opacity-70 transition-opacity"
+              title="Долгое нажатие для управления БД"
+              onTouchStart={(e) => {
+                const target = e.currentTarget;
+                target.dataset.longPressTimer = String(setTimeout(() => {
+                  setIsDatabaseMenuOpen(true);
+                  // Haptic feedback if available
+                  if (window.Telegram?.WebApp?.HapticFeedback) {
+                    window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+                  }
+                }, 1000));
+              }}
+              onTouchEnd={(e) => {
+                const timer = e.currentTarget.dataset.longPressTimer;
+                if (timer) {
+                  clearTimeout(Number(timer));
+                  delete e.currentTarget.dataset.longPressTimer;
+                }
+              }}
+              onTouchMove={(e) => {
+                const timer = e.currentTarget.dataset.longPressTimer;
+                if (timer) {
+                  clearTimeout(Number(timer));
+                  delete e.currentTarget.dataset.longPressTimer;
+                }
+              }}
+              onMouseDown={(e) => {
+                const target = e.currentTarget;
+                target.dataset.longPressTimer = String(setTimeout(() => {
+                  setIsDatabaseMenuOpen(true);
+                }, 1000));
+              }}
+              onMouseUp={(e) => {
+                const timer = e.currentTarget.dataset.longPressTimer;
+                if (timer) {
+                  clearTimeout(Number(timer));
+                  delete e.currentTarget.dataset.longPressTimer;
+                }
+              }}
+              onMouseLeave={(e) => {
+                const timer = e.currentTarget.dataset.longPressTimer;
+                if (timer) {
+                  clearTimeout(Number(timer));
+                  delete e.currentTarget.dataset.longPressTimer;
+                }
+              }}
+            />
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <div className="flex flex-col items-end text-xs text-muted-foreground leading-tight">
-                <span className="truncate max-w-[120px]">{userName || "Пользователь"}</span>
+                <span className="truncate max-w-[200px]" title={userName || "Пользователь"}>
+                  {userName || "Пользователь"}
+                </span>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsDatabaseMenuOpen(true)}
-                title="Управление базой данных"
-                className="flex-shrink-0 h-8 w-8 p-0"
-              >
-                <Database className="h-4 w-4" />
-              </Button>
               <Button
                 variant="ghost"
                 size="sm"
