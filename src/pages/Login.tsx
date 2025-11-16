@@ -156,28 +156,21 @@ const Login = () => {
               .update({ name: currentTelegramName })
               .eq('user_id', currentSession.user.id);
 
-            // Log the name change (only if it's not a brand new user)
+            // Log the name change to user_name_changes table
             if (appUser.name && appUser.name.trim() !== '') {
-              const { error: transactionError } = await supabase
-                .from('transactions')
+              const { error: nameChangeError } = await supabase
+                .from('user_name_changes')
                 .insert({
                   user_id: appUser.id,
-                  item_id: null,
-                  action: 'имя изменено',
-                  quantity: 0,
-                  item_name: null,
-                  category_name: null,
-                  details: {
-                    old_name: appUser.name,
-                    new_name: currentTelegramName,
-                    telegram_id: telegramId
-                  }
+                  old_name: appUser.name,
+                  new_name: currentTelegramName,
+                  telegram_id: telegramId
                 });
 
-              if (transactionError) {
-                console.error('Error logging name change:', transactionError);
+              if (nameChangeError) {
+                console.error('Error logging name change:', nameChangeError);
               } else {
-                console.log(`Имя обновлено: ${appUser.name} → ${currentTelegramName}`);
+                console.log(`✅ Имя обновлено: ${appUser.name} → ${currentTelegramName}`);
               }
             }
           }
