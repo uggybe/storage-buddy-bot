@@ -104,26 +104,21 @@ const Inventory = () => {
             .update({ name: currentTelegramName })
             .eq('user_id', session.user.id);
 
-          // Log the name change (only if old name is not empty)
+          // Log the name change to user_name_changes table
           if (appUserData.name && appUserData.name.trim() !== '') {
-            const { error: transactionError } = await supabase
-              .from('transactions')
+            const { error: nameChangeError } = await supabase
+              .from('user_name_changes')
               .insert({
                 user_id: appUserData.id,
-                item_id: null,
-                action: 'имя изменено',
-                quantity: 0,
-                item_name: null,
-                category_name: null,
-                details: {
-                  old_name: appUserData.name,
-                  new_name: currentTelegramName,
-                  telegram_id: telegramId
-                }
+                old_name: appUserData.name,
+                new_name: currentTelegramName,
+                telegram_id: telegramId
               });
 
-            if (transactionError) {
-              console.error('Error logging name change:', transactionError);
+            if (nameChangeError) {
+              console.error('Error logging name change:', nameChangeError);
+            } else {
+              console.log('✅ Name change logged to user_name_changes table');
             }
           }
         }
@@ -587,10 +582,10 @@ const Inventory = () => {
               <div className="flex flex-col items-center text-xs text-muted-foreground leading-tight">
                 {userLastName ? (
                   <>
-                    <span className="truncate max-w-[200px] font-medium" title={userLastName}>
+                    <span className="truncate max-w-[200px]" title={userLastName}>
                       {userLastName}
                     </span>
-                    <span className="truncate max-w-[200px] text-[10px]" title={userFirstName}>
+                    <span className="truncate max-w-[200px]" title={userFirstName}>
                       {userFirstName}
                     </span>
                   </>

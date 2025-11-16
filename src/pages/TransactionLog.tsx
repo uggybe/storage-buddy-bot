@@ -28,9 +28,22 @@ type Transaction = {
   } | null;
 };
 
+type NameChange = {
+  id: string;
+  user_id: string;
+  old_name: string;
+  new_name: string;
+  telegram_id: number | null;
+  created_at: string;
+  app_users: {
+    name: string;
+  } | null;
+};
+
 const TransactionLog = () => {
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [nameChanges, setNameChanges] = useState<NameChange[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -40,14 +53,16 @@ const TransactionLog = () => {
         navigate("/");
         return;
       }
-      fetchTransactions();
+      fetchAllData();
     });
   }, [navigate]);
 
-  const fetchTransactions = async () => {
+  const fetchAllData = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
+
+      // Fetch transactions
+      const { data: transData, error: transError } = await supabase
         .from("transactions")
         .select(`
           *,
@@ -56,16 +71,30 @@ const TransactionLog = () => {
         `)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (transError) throw transError;
 
-      setTransactions(data || []);
+      // Fetch name changes
+      const { data: nameData, error: nameError } = await supabase
+        .from("user_name_changes")
+        .select(`
+          *,
+          app_users (name)
+        `)
+        .order("created_at", { ascending: false });
+
+      if (nameError) throw nameError;
+
+      setTransactions(transData || []);
+      setNameChanges(nameData || []);
     } catch (error) {
-      console.error("Error fetching transactions:", error);
+      console.error("Error fetching data:", error);
       toast.error("Ошибка загрузки журнала");
     } finally {
       setIsLoading(false);
     }
   };
+
+  const fetchTransactions = fetchAllData;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -121,8 +150,6 @@ const TransactionLog = () => {
         return `Изменил склад`;
       case "склад удален":
         return `Удалил склад`;
-      case "имя изменено":
-        return `Изменил имя в Telegram`;
       default:
         return action;
     }
@@ -209,8 +236,6 @@ const TransactionLog = () => {
         return "text-teal-600 bg-teal-50 border-teal-200";
       case "склад удален":
         return "text-orange-600 bg-orange-50 border-orange-200";
-      case "имя изменено":
-        return "text-sky-600 bg-sky-50 border-sky-200";
       default:
         return "text-gray-600 bg-gray-50 border-gray-200";
     }
@@ -421,12 +446,42 @@ const TransactionLog = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-muted-foreground">Загрузка...</p>
           </div>
-        ) : transactions.length === 0 ? (
+        ) : transactions.length === 0 && nameChanges.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">Журнал событий пуст</p>
           </div>
         ) : (
           <div className="space-y-2">
+            {/* Name changes */}
+            {nameChanges.map((nameChange) => (
+              <div
+                key={`name-${nameChange.id}`}
+                className="p-3 border rounded-lg text-sky-600 bg-sky-50 border-sky-200"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium">
+                        {nameChange.app_users?.name || nameChange.new_name}
+                      </span>
+                      <span className="text-sm">
+                        Изменил имя в Telegram
+                      </span>
+                    </div>
+                    <div className="text-xs mt-1.5 bg-white/50 dark:bg-black/20 rounded px-2 py-1.5 border border-current/20">
+                      <span className="font-semibold">Старое имя:</span> {nameChange.old_name}
+                      <span className="mx-2">→</span>
+                      <span className="font-semibold">Новое имя:</span> {nameChange.new_name}
+                    </div>
+                  </div>
+                  <div className="text-xs text-muted-foreground flex-shrink-0">
+                    {formatDate(nameChange.created_at)}
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Transactions */}
             {transactions.map((transaction) => (
               <div
                 key={transaction.id}
@@ -501,15 +556,6 @@ const TransactionLog = () => {
 
                     {/* Show all changes for edit action */}
                     {transaction.action === "изменено" && renderChanges(transaction.details)}
-
-                    {/* Show name change details */}
-                    {transaction.action === "имя изменено" && transaction.details && (
-                      <div className="text-xs mt-1.5 bg-white/50 dark:bg-black/20 rounded px-2 py-1.5 border border-current/20">
-                        <span className="font-semibold">Старое имя:</span> {transaction.details.old_name}
-                        <span className="mx-2">→</span>
-                        <span className="font-semibold">Новое имя:</span> {transaction.details.new_name}
-                      </div>
-                    )}
                   </div>
                   <div className="text-xs text-muted-foreground flex-shrink-0">
                     {formatDate(transaction.created_at)}
