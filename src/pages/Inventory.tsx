@@ -44,6 +44,8 @@ const Inventory = () => {
   const [isDatabaseMenuOpen, setIsDatabaseMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [userName, setUserName] = useState(() => sessionStorage.getItem('userName') || "");
+  const [userFirstName, setUserFirstName] = useState(() => sessionStorage.getItem('userFirstName') || "");
+  const [userLastName, setUserLastName] = useState(() => sessionStorage.getItem('userLastName') || "");
 
   useEffect(() => {
     // Check authentication status
@@ -78,8 +80,10 @@ const Inventory = () => {
 
       // Get current name from Telegram WebApp (ALWAYS current)
       const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+      const firstName = telegramUser?.first_name || '';
+      const lastName = telegramUser?.last_name || '';
       const currentTelegramName = telegramUser
-        ? (telegramUser.first_name + (telegramUser.last_name ? ' ' + telegramUser.last_name : '')).trim()
+        ? (firstName + (lastName ? ' ' + lastName : '')).trim()
         : 'Пользователь';
 
       // Get stored name from app_users
@@ -127,7 +131,11 @@ const Inventory = () => {
 
       // ALWAYS use current Telegram name for display
       setUserName(currentTelegramName);
+      setUserFirstName(firstName);
+      setUserLastName(lastName);
       sessionStorage.setItem('userName', currentTelegramName);
+      sessionStorage.setItem('userFirstName', firstName);
+      sessionStorage.setItem('userLastName', lastName);
 
       fetchWarehouses();
       fetchItems();
@@ -575,11 +583,22 @@ const Inventory = () => {
                 }
               }}
             />
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              <div className="flex flex-col items-end text-xs text-muted-foreground leading-tight">
-                <span className="truncate max-w-[200px]" title={userName || "Пользователь"}>
-                  {userName || "Пользователь"}
-                </span>
+            <div className="flex items-center gap-0.5 flex-shrink-0">
+              <div className="flex flex-col items-center text-xs text-muted-foreground leading-tight">
+                {userLastName ? (
+                  <>
+                    <span className="truncate max-w-[200px] font-medium" title={userLastName}>
+                      {userLastName}
+                    </span>
+                    <span className="truncate max-w-[200px] text-[10px]" title={userFirstName}>
+                      {userFirstName}
+                    </span>
+                  </>
+                ) : (
+                  <span className="truncate max-w-[200px]" title={userFirstName || "Пользователь"}>
+                    {userFirstName || "Пользователь"}
+                  </span>
+                )}
               </div>
               <Button
                 variant="ghost"
