@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, BookOpen, ArrowUp, ArrowDown, Filter } from "lucide-react";
+import { Plus, Search, BookOpen, ArrowUp, ArrowDown, Filter, Database } from "lucide-react";
 import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 import { ItemCard } from "@/components/ItemCard";
@@ -35,8 +35,7 @@ const Inventory = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [userFirstName, setUserFirstName] = useState(() => sessionStorage.getItem('userFirstName') || "");
-  const [userLastName, setUserLastName] = useState(() => sessionStorage.getItem('userLastName') || "");
+  const [userName, setUserName] = useState(() => sessionStorage.getItem('userName') || "");
 
   useEffect(() => {
     // Check authentication status
@@ -69,22 +68,19 @@ const Inventory = () => {
         return;
       }
 
-      // Get user's name from whitelist table
-      const { data: whitelistData } = await supabase
-        .from('whitelist')
-        .select('last_name, first_name')
-        .eq('telegram_id', telegramId)
+      // Get user's name from app_users table (same name shown everywhere including transaction log)
+      const { data: appUserData } = await supabase
+        .from('app_users')
+        .select('name')
+        .eq('user_id', session.user.id)
         .single();
 
-      const lastName = whitelistData?.last_name || '';
-      const firstName = whitelistData?.first_name || '';
+      const name = appUserData?.name || 'Пользователь';
 
-      setUserLastName(lastName);
-      setUserFirstName(firstName);
+      setUserName(name);
 
       // Save to sessionStorage for instant access on next mount
-      sessionStorage.setItem('userLastName', lastName);
-      sessionStorage.setItem('userFirstName', firstName);
+      sessionStorage.setItem('userName', name);
 
       fetchWarehouses();
       fetchItems();
@@ -176,6 +172,94 @@ const Inventory = () => {
     }
   };
 
+  const exportDatabase = async () => {
+    try {
+      toast.info("Подготовка резервной копии...");
+
+      // Fetch all data from main tables
+      const [itemsRes, categoriesRes, warehousesRes, transactionsRes] = await Promise.all([
+        supabase.from("items").select("*").order("created_at"),
+        supabase.from("categories").select("*").order("name"),
+        supabase.from("warehouses").select("*").order("name"),
+        supabase.from("transactions").select(`
+          *,
+          app_users (name),
+          items (name, model)
+        `).order("created_at", { ascending: false }).limit(1000),
+      ]);
+
+      if (itemsRes.error) throw itemsRes.error;
+      if (categoriesRes.error) throw categoriesRes.error;
+      if (warehousesRes.error) throw warehousesRes.error;
+      if (transactionsRes.error) throw transactionsRes.error;
+
+      const backup = {
+        export_date: new Date().toISOString(),
+        version: "1.0",
+        data: {
+          items: itemsRes.data || [],
+          categories: categoriesRes.data || [],
+          warehouses: warehousesRes.data || [],
+          transactions: transactionsRes.data || [],
+        },
+        stats: {
+          total_items: itemsRes.data?.length || 0,
+          total_categories: categoriesRes.data?.length || 0,
+          total_warehouses: warehousesRes.data?.length || 0,
+          total_transactions: transactionsRes.data?.length || 0,
+        }
+      };
+
+      // Convert to JSON
+      const jsonStr = JSON.stringify(backup, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+
+      // Generate filename with current date
+      const fileName = `Резервная_копия_БД_${new Date().toISOString().split('T')[0]}.json`;
+
+      // Check if mobile device
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+      // Try Web Share API for mobile devices
+      if (isMobile && navigator.share) {
+        try {
+          const file = new File([blob], fileName, { type: 'application/json' });
+          await navigator.share({
+            files: [file],
+            title: 'Резервная копия БД',
+            text: 'Резервная копия базы данных'
+          });
+          toast.success("✅ Файл отправлен!");
+          return;
+        } catch (err: any) {
+          if (err.name !== 'AbortError') {
+            console.log('Share failed, trying download:', err);
+          } else {
+            return; // User cancelled
+          }
+        }
+      }
+
+      // Standard download
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 100);
+
+      toast.success(`📦 Резервная копия сохранена (${backup.stats.total_items} предметов)`);
+    } catch (error: any) {
+      console.error("Error exporting database:", error);
+      toast.error("Ошибка экспорта: " + (error.message || "Неизвестная ошибка"));
+    }
+  };
+
   useEffect(() => {
     let filtered = items;
 
@@ -219,10 +303,17 @@ const Inventory = () => {
             <img src={logo} alt="ЦЭПП Services" className="h-10" />
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <div className="flex flex-col items-end text-xs text-muted-foreground leading-tight">
-                {userLastName && <span className="truncate max-w-[120px]">{userLastName}</span>}
-                {userFirstName && <span className="truncate max-w-[120px]">{userFirstName}</span>}
-                {!userLastName && !userFirstName && <span className="truncate max-w-[120px]">Пользователь</span>}
+                <span className="truncate max-w-[120px]">{userName || "Пользователь"}</span>
               </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={exportDatabase}
+                title="Скачать резервную копию БД"
+                className="flex-shrink-0 h-8 w-8 p-0"
+              >
+                <Database className="h-4 w-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
@@ -329,7 +420,7 @@ const Inventory = () => {
           <>
             <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3 relative z-10">
               {filteredItems.map(item => (
-                <ItemCard key={item.id} item={item} onUpdate={fetchItems} userName={`${userFirstName} ${userLastName}`.trim() || "Пользователь"} />
+                <ItemCard key={item.id} item={item} onUpdate={fetchItems} userName={userName || "Пользователь"} />
               ))}
             </div>
 

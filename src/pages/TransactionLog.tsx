@@ -386,9 +386,10 @@ const TransactionLog = () => {
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <Button
-                variant="ghost"
+                variant="outline"
                 size="icon"
                 onClick={() => navigate("/inventory")}
+                className="border-gray-300"
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
