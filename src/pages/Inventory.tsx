@@ -185,7 +185,7 @@ const Inventory = () => {
       toast.info("Подготовка резервной копии...");
 
       // Fetch all data from main tables
-      const [itemsRes, categoriesRes, warehousesRes, transactionsRes] = await Promise.all([
+      const [itemsRes, categoriesRes, warehousesRes, transactionsRes, appUsersRes] = await Promise.all([
         supabase.from("items").select("*").order("created_at"),
         supabase.from("categories").select("*").order("name"),
         supabase.from("warehouses").select("*").order("name"),
@@ -194,27 +194,71 @@ const Inventory = () => {
           app_users (name),
           items (name, model)
         `).order("created_at", { ascending: false }).limit(1000),
+        supabase.from("app_users").select("*").order("created_at"),
       ]);
 
       if (itemsRes.error) throw itemsRes.error;
       if (categoriesRes.error) throw categoriesRes.error;
       if (warehousesRes.error) throw warehousesRes.error;
       if (transactionsRes.error) throw transactionsRes.error;
+      if (appUsersRes.error) throw appUsersRes.error;
+
+      // Download photos from Storage and convert to base64
+      toast.info("Загрузка фотографий...");
+      const photos: { [key: string]: string } = {};
+
+      if (itemsRes.data) {
+        for (const item of itemsRes.data) {
+          if (item.photos && Array.isArray(item.photos)) {
+            for (const photoUrl of item.photos) {
+              if (photoUrl && !photos[photoUrl]) {
+                try {
+                  // Extract file path from URL
+                  const urlParts = photoUrl.split('/');
+                  const fileName = urlParts[urlParts.length - 1];
+
+                  // Download photo
+                  const { data: photoData, error: photoError } = await supabase
+                    .storage
+                    .from('item-photos')
+                    .download(fileName);
+
+                  if (!photoError && photoData) {
+                    // Convert to base64
+                    const reader = new FileReader();
+                    const base64Promise = new Promise<string>((resolve) => {
+                      reader.onloadend = () => resolve(reader.result as string);
+                      reader.readAsDataURL(photoData);
+                    });
+                    photos[photoUrl] = await base64Promise;
+                  }
+                } catch (err) {
+                  console.error(`Error downloading photo ${photoUrl}:`, err);
+                }
+              }
+            }
+          }
+        }
+      }
 
       const backup = {
         export_date: new Date().toISOString(),
-        version: "1.0",
+        version: "2.0",
         data: {
           items: itemsRes.data || [],
           categories: categoriesRes.data || [],
           warehouses: warehousesRes.data || [],
           transactions: transactionsRes.data || [],
+          app_users: appUsersRes.data || [],
+          photos: photos,
         },
         stats: {
           total_items: itemsRes.data?.length || 0,
           total_categories: categoriesRes.data?.length || 0,
           total_warehouses: warehousesRes.data?.length || 0,
           total_transactions: transactionsRes.data?.length || 0,
+          total_app_users: appUsersRes.data?.length || 0,
+          total_photos: Object.keys(photos).length,
         }
       };
 
@@ -261,7 +305,11 @@ const Inventory = () => {
         URL.revokeObjectURL(url);
       }, 100);
 
-      toast.success(`📦 Резервная копия сохранена (${backup.stats.total_items} предметов)`);
+      const statsMsg = `📦 Резервная копия сохранена!\n` +
+        `Предметов: ${backup.stats.total_items}\n` +
+        `Пользователей: ${backup.stats.total_app_users}\n` +
+        `Фотографий: ${backup.stats.total_photos}`;
+      toast.success(statsMsg);
     } catch (error: any) {
       console.error("Error exporting database:", error);
       toast.error("Ошибка экспорта: " + (error.message || "Неизвестная ошибка"));
@@ -290,14 +338,16 @@ const Inventory = () => {
           throw new Error("Неверный формат файла резервной копии");
         }
 
-        const { items, categories, warehouses } = backup.data;
+        const { items, categories, warehouses, photos, app_users } = backup.data;
 
         // Confirm restoration
         const confirmed = window.confirm(
           `Восстановить базу данных?\n\n` +
           `Предметов: ${items?.length || 0}\n` +
           `Категорий: ${categories?.length || 0}\n` +
-          `Складов: ${warehouses?.length || 0}\n\n` +
+          `Складов: ${warehouses?.length || 0}\n` +
+          `Пользователей: ${app_users?.length || 0}\n` +
+          `Фотографий: ${photos ? Object.keys(photos).length : 0}\n\n` +
           `⚠️ ВНИМАНИЕ: Существующие данные будут удалены!`
         );
 
@@ -324,8 +374,57 @@ const Inventory = () => {
           if (catError) console.error("Warning: categories restore error:", catError);
         }
 
+        // Restore photos to Storage
+        if (photos && Object.keys(photos).length > 0) {
+          toast.info("Восстановление фотографий...");
+          const photoUrlMap: { [oldUrl: string]: string } = {};
+
+          for (const [oldUrl, base64Data] of Object.entries(photos)) {
+            try {
+              // Extract filename from old URL
+              const urlParts = oldUrl.split('/');
+              const fileName = urlParts[urlParts.length - 1];
+
+              // Convert base64 to Blob
+              const base64Response = await fetch(base64Data);
+              const blob = await base64Response.blob();
+
+              // Upload to Storage
+              const { data: uploadData, error: uploadError } = await supabase
+                .storage
+                .from('item-photos')
+                .upload(fileName, blob, {
+                  upsert: true,
+                  contentType: blob.type
+                });
+
+              if (!uploadError && uploadData) {
+                // Get public URL
+                const { data: urlData } = supabase
+                  .storage
+                  .from('item-photos')
+                  .getPublicUrl(fileName);
+
+                photoUrlMap[oldUrl] = urlData.publicUrl;
+              }
+            } catch (err) {
+              console.error(`Error restoring photo ${oldUrl}:`, err);
+            }
+          }
+
+          // Update photo URLs in items
+          if (items) {
+            for (const item of items) {
+              if (item.photos && Array.isArray(item.photos)) {
+                item.photos = item.photos.map((oldUrl: string) => photoUrlMap[oldUrl] || oldUrl);
+              }
+            }
+          }
+        }
+
         // Restore items
         if (items && items.length > 0) {
+          toast.info("Восстановление предметов...");
           // Insert in batches of 100 to avoid payload size limits
           const batchSize = 100;
           for (let i = 0; i < items.length; i += batchSize) {
@@ -338,7 +437,10 @@ const Inventory = () => {
           }
         }
 
-        toast.success(`✅ База данных восстановлена! (${items?.length || 0} предметов)`);
+        const statsMsg = `✅ База данных восстановлена!\n` +
+          `Предметов: ${items?.length || 0}\n` +
+          `Фотографий: ${photos ? Object.keys(photos).length : 0}`;
+        toast.success(statsMsg);
 
         // Refresh data
         fetchItems();

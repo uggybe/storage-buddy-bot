@@ -160,6 +160,9 @@ const Login = () => {
               .update({ name: userName })
               .eq('user_id', currentSession.user.id);
 
+            // Save updated name to sessionStorage
+            sessionStorage.setItem('userName', userName);
+
             // Log the name change
             await supabase
               .from('transactions')
@@ -175,6 +178,9 @@ const Login = () => {
                   telegram_id: telegramId
                 }
               });
+
+            // Notify user about name change
+            console.log(`Имя обновлено: ${appUser.name} → ${userName}`);
           }
         }
       }
