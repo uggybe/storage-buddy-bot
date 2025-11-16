@@ -76,10 +76,11 @@ const Inventory = () => {
         return;
       }
 
-      // Get current name from Telegram metadata (ALWAYS current)
-      const telegramFirstName = session.user.user_metadata?.first_name || '';
-      const telegramLastName = session.user.user_metadata?.last_name || '';
-      const currentTelegramName = (telegramFirstName + (telegramLastName ? ' ' + telegramLastName : '')).trim() || 'Пользователь';
+      // Get current name from Telegram WebApp (ALWAYS current)
+      const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+      const currentTelegramName = telegramUser
+        ? (telegramUser.first_name + (telegramUser.last_name ? ' ' + telegramUser.last_name : '')).trim()
+        : 'Пользователь';
 
       // Get stored name from app_users
       const { data: appUserData } = await supabase
