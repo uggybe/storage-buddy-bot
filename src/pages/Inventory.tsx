@@ -182,7 +182,8 @@ const Inventory = () => {
 
   const exportDatabase = async () => {
     try {
-      toast.info("Подготовка резервной копии...");
+      // Single progress toast
+      toast.info("Подготовка резервной копии... Пожалуйста, подождите.");
 
       // Fetch all data from main tables
       const [itemsRes, categoriesRes, warehousesRes, transactionsRes, appUsersRes] = await Promise.all([
@@ -204,7 +205,6 @@ const Inventory = () => {
       if (appUsersRes.error) throw appUsersRes.error;
 
       // Download photos from Storage and convert to base64
-      toast.info("Загрузка фотографий...");
       const photos: { [key: string]: string } = {};
 
       if (itemsRes.data) {
@@ -305,14 +305,17 @@ const Inventory = () => {
         URL.revokeObjectURL(url);
       }, 100);
 
-      const statsMsg = `📦 Резервная копия сохранена!\n` +
+      toast.success(
+        `📦 Резервная копия сохранена!\n\n` +
         `Предметов: ${backup.stats.total_items}\n` +
+        `Категорий: ${backup.stats.total_categories}\n` +
+        `Складов: ${backup.stats.total_warehouses}\n` +
         `Пользователей: ${backup.stats.total_app_users}\n` +
-        `Фотографий: ${backup.stats.total_photos}`;
-      toast.success(statsMsg);
+        `Фотографий: ${backup.stats.total_photos}`
+      );
     } catch (error: any) {
       console.error("Error exporting database:", error);
-      toast.error("Ошибка экспорта: " + (error.message || "Неизвестная ошибка"));
+      toast.error(`Ошибка экспорта: ${error.message || "Неизвестная ошибка"}`);
     }
   };
 
