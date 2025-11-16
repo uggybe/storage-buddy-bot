@@ -327,8 +327,6 @@ const Inventory = () => {
       if (!file) return;
 
       try {
-        toast.info("Чтение файла...");
-
         // Read file
         const text = await file.text();
         const backup = JSON.parse(text);
@@ -340,6 +338,10 @@ const Inventory = () => {
 
         const { items, categories, warehouses, photos, app_users } = backup.data;
 
+        // Count photos from both photos object and items
+        const photosCount = photos ? Object.keys(photos).length : 0;
+        const itemsWithPhotos = items ? items.filter((item: any) => item.photos && item.photos.length > 0).length : 0;
+
         // Confirm restoration
         const confirmed = window.confirm(
           `Восстановить базу данных?\n\n` +
@@ -347,16 +349,16 @@ const Inventory = () => {
           `Категорий: ${categories?.length || 0}\n` +
           `Складов: ${warehouses?.length || 0}\n` +
           `Пользователей: ${app_users?.length || 0}\n` +
-          `Фотографий: ${photos ? Object.keys(photos).length : 0}\n\n` +
+          `Фотографий: ${photosCount}${itemsWithPhotos > 0 ? ` (у ${itemsWithPhotos} предметов)` : ''}\n\n` +
           `⚠️ ВНИМАНИЕ: Существующие данные будут удалены!`
         );
 
         if (!confirmed) {
-          toast.info("Восстановление отменено");
           return;
         }
 
-        toast.info("Восстановление базы данных...");
+        // Single progress toast
+        toast.info("Восстановление базы данных... Пожалуйста, подождите.");
 
         // Delete existing data (in reverse order due to foreign keys)
         await supabase.from("transactions").delete().neq('id', '00000000-0000-0000-0000-000000000000');
@@ -375,8 +377,8 @@ const Inventory = () => {
         }
 
         // Restore photos to Storage
+        let restoredPhotosCount = 0;
         if (photos && Object.keys(photos).length > 0) {
-          toast.info("Восстановление фотографий...");
           const photoUrlMap: { [oldUrl: string]: string } = {};
 
           for (const [oldUrl, base64Data] of Object.entries(photos)) {
@@ -406,6 +408,7 @@ const Inventory = () => {
                   .getPublicUrl(fileName);
 
                 photoUrlMap[oldUrl] = urlData.publicUrl;
+                restoredPhotosCount++;
               }
             } catch (err) {
               console.error(`Error restoring photo ${oldUrl}:`, err);
@@ -424,7 +427,6 @@ const Inventory = () => {
 
         // Restore items
         if (items && items.length > 0) {
-          toast.info("Восстановление предметов...");
           // Insert in batches of 100 to avoid payload size limits
           const batchSize = 100;
           for (let i = 0; i < items.length; i += batchSize) {
@@ -437,10 +439,14 @@ const Inventory = () => {
           }
         }
 
-        const statsMsg = `✅ База данных восстановлена!\n` +
+        // Single success message with all stats
+        toast.success(
+          `✅ База данных восстановлена!\n\n` +
           `Предметов: ${items?.length || 0}\n` +
-          `Фотографий: ${photos ? Object.keys(photos).length : 0}`;
-        toast.success(statsMsg);
+          `Категорий: ${categories?.length || 0}\n` +
+          `Складов: ${warehouses?.length || 0}\n` +
+          `Фотографий: ${restoredPhotosCount}`
+        );
 
         // Refresh data
         fetchItems();
@@ -449,7 +455,7 @@ const Inventory = () => {
 
       } catch (error: any) {
         console.error("Error importing database:", error);
-        toast.error("Ошибка восстановления: " + (error.message || "Неизвестная ошибка"));
+        toast.error(`Ошибка восстановления: ${error.message || "Неизвестная ошибка"}`);
       }
     };
 

@@ -123,35 +123,28 @@ const Login = () => {
           throw signUpError;
         }
 
-        console.log("Sign up successful, creating app_users record...");
-
-        // Создаем запись в app_users вручную
-        if (signUpData?.user) {
-          const { error: appUserError } = await supabase
-            .from('app_users')
-            .insert({
-              user_id: signUpData.user.id,
-              name: userName
-            });
-
-          if (appUserError) {
-            console.error("Error creating app_users record:", appUserError);
-            // Не критично, продолжаем
-          }
-        }
+        console.log("Sign up successful");
       } else {
         console.log("Sign in successful");
+      }
 
-        // Check if user's Telegram name has changed
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        if (currentSession?.user) {
-          const { data: appUser } = await supabase
-            .from('app_users')
-            .select('id, name')
-            .eq('user_id', currentSession.user.id)
-            .single();
+      // Check session and update user name (works for both sign-up and sign-in)
+      setDebugInfo("Проверка данных пользователя...");
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
 
-          if (appUser && appUser.name !== userName) {
+      if (currentSession?.user) {
+        // Wait a bit for trigger to create app_users record (for new sign-ups)
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        const { data: appUser } = await supabase
+          .from('app_users')
+          .select('id, name')
+          .eq('user_id', currentSession.user.id)
+          .single();
+
+        if (appUser) {
+          // Check if name changed
+          if (appUser.name !== userName) {
             console.log(`Name changed from "${appUser.name}" to "${userName}"`);
 
             // Update name in app_users
@@ -160,28 +153,29 @@ const Login = () => {
               .update({ name: userName })
               .eq('user_id', currentSession.user.id);
 
-            // Save updated name to sessionStorage
-            sessionStorage.setItem('userName', userName);
+            // Log the name change (only if it's not a brand new user)
+            if (appUser.name && appUser.name.trim() !== '') {
+              await supabase
+                .from('transactions')
+                .insert({
+                  user_id: appUser.id,
+                  action: 'имя изменено',
+                  quantity: 0,
+                  item_name: null,
+                  category_name: null,
+                  details: {
+                    old_name: appUser.name,
+                    new_name: userName,
+                    telegram_id: telegramId
+                  }
+                });
 
-            // Log the name change
-            await supabase
-              .from('transactions')
-              .insert({
-                user_id: appUser.id,
-                action: 'имя изменено',
-                quantity: 0,
-                item_name: null,
-                category_name: null,
-                details: {
-                  old_name: appUser.name,
-                  new_name: userName,
-                  telegram_id: telegramId
-                }
-              });
-
-            // Notify user about name change
-            console.log(`Имя обновлено: ${appUser.name} → ${userName}`);
+              console.log(`Имя обновлено: ${appUser.name} → ${userName}`);
+            }
           }
+
+          // Always save current userName to sessionStorage
+          sessionStorage.setItem('userName', userName);
         }
       }
 
