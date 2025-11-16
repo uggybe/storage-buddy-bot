@@ -99,7 +99,7 @@ export const EditItemDialog = ({
 
       if (!appUser) throw new Error("User profile not found");
 
-      const numQuantity = parseInt(formData.quantity) || 1;
+      const numQuantity = formData.quantity === "" ? 1 : Math.max(0, parseInt(formData.quantity));
 
       // Track changes for detailed logging
       const changes: any = {};

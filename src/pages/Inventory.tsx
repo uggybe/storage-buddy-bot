@@ -97,9 +97,7 @@ const Inventory = () => {
       }
     });
 
-    // Real-time subscriptions disabled due to errors
-    // TODO: Re-enable after fixing Realtime configuration
-    /*
+    // Real-time subscriptions for live updates
     const itemsChannel = supabase
       .channel('database-changes')
       .on(
@@ -132,14 +130,12 @@ const Inventory = () => {
           console.log('Successfully subscribed to real-time changes');
         } else if (status === 'CHANNEL_ERROR') {
           console.error('Error subscribing to real-time changes');
-          toast.error('Ошибка подключения к real-time обновлениям');
         }
       });
-    */
 
     return () => {
       subscription.unsubscribe();
-      // supabase.removeChannel(itemsChannel); // Disabled with realtime
+      supabase.removeChannel(itemsChannel);
     };
   }, [navigate]);
 
