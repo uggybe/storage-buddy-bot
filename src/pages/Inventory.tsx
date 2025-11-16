@@ -76,19 +76,57 @@ const Inventory = () => {
         return;
       }
 
-      // Get user's name from app_users table (same name shown everywhere including transaction log)
+      // Get current name from Telegram metadata (ALWAYS current)
+      const telegramFirstName = session.user.user_metadata?.first_name || '';
+      const telegramLastName = session.user.user_metadata?.last_name || '';
+      const currentTelegramName = (telegramFirstName + (telegramLastName ? ' ' + telegramLastName : '')).trim() || 'Пользователь';
+
+      // Get stored name from app_users
       const { data: appUserData } = await supabase
         .from('app_users')
-        .select('name')
+        .select('id, name')
         .eq('user_id', session.user.id)
         .single();
 
-      const name = appUserData?.name || 'Пользователь';
+      if (appUserData) {
+        // Check if name changed
+        if (appUserData.name !== currentTelegramName) {
+          console.log(`Name changed from "${appUserData.name}" to "${currentTelegramName}"`);
 
-      setUserName(name);
+          // Update name in app_users
+          await supabase
+            .from('app_users')
+            .update({ name: currentTelegramName })
+            .eq('user_id', session.user.id);
 
-      // Save to sessionStorage for instant access on next mount
-      sessionStorage.setItem('userName', name);
+          // Log the name change (only if old name is not empty)
+          if (appUserData.name && appUserData.name.trim() !== '') {
+            const { error: transactionError } = await supabase
+              .from('transactions')
+              .insert({
+                user_id: appUserData.id,
+                item_id: null,
+                action: 'имя изменено',
+                quantity: 0,
+                item_name: null,
+                category_name: null,
+                details: {
+                  old_name: appUserData.name,
+                  new_name: currentTelegramName,
+                  telegram_id: telegramId
+                }
+              });
+
+            if (transactionError) {
+              console.error('Error logging name change:', transactionError);
+            }
+          }
+        }
+      }
+
+      // ALWAYS use current Telegram name for display
+      setUserName(currentTelegramName);
+      sessionStorage.setItem('userName', currentTelegramName);
 
       fetchWarehouses();
       fetchItems();
