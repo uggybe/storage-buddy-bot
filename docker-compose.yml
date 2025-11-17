@@ -22,23 +22,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # Supabase Studio - UI для управления
-  studio:
-    image: supabase/studio:20231123-64b7191
-    container_name: storage-buddy-studio
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    environment:
-      STUDIO_PG_META_URL: http://meta:8080
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      DEFAULT_ORGANIZATION_NAME: ${DEFAULT_ORGANIZATION_NAME:-Storage Buddy}
-      DEFAULT_PROJECT_NAME: ${DEFAULT_PROJECT_NAME:-Storage Buddy Bot}
-      SUPABASE_URL: http://kong:8000
-      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
-      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
-      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
-
   # Kong - API Gateway
   kong:
     image: kong:2.8.1
@@ -181,22 +164,6 @@ services:
       IMGPROXY_ENABLE_WEBP_DETECTION: ${IMGPROXY_ENABLE_WEBP_DETECTION:-true}
     volumes:
       - ./volumes/storage:/var/lib/storage
-
-  # Meta - API для метаданных
-  meta:
-    image: supabase/postgres-meta:v0.68.0
-    container_name: storage-buddy-meta
-    restart: unless-stopped
-    environment:
-      PG_META_PORT: 8080
-      PG_META_DB_HOST: postgres
-      PG_META_DB_PORT: 5432
-      PG_META_DB_NAME: postgres
-      PG_META_DB_USER: postgres
-      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
-    depends_on:
-      postgres:
-        condition: service_healthy
 
   # Frontend - Nginx с React приложением
   frontend:
