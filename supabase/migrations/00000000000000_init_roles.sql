@@ -6,15 +6,10 @@
 
 -- Создаем роли если их нет
 DO $$
-DECLARE
-  db_password text;
 BEGIN
-  -- Получаем пароль суперпользователя
-  db_password := current_setting('password_encryption');
-
   -- Роль для аутентификации
   IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'authenticator') THEN
-    EXECUTE format('CREATE ROLE authenticator WITH LOGIN PASSWORD %L', current_setting('password_encryption'));
+    CREATE ROLE authenticator WITH LOGIN PASSWORD 'postgres';
   END IF;
 
   -- Роль для anon доступа
