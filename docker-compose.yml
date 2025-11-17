@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # PostgreSQL Database
   postgres:
-    image: supabase/postgres:15.1.0.147
+    image: postgres:15-alpine
     container_name: storage-buddy-postgres
     restart: unless-stopped
     ports:
@@ -12,10 +12,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres
-      POSTGRES_HOST: /var/run/postgresql
     volumes:
-      - ./volumes/db/data:/var/lib/postgresql/data
-      - ./supabase/migrations:/docker-entrypoint-initdb.d
+      - postgres-data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
