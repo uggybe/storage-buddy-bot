@@ -1,0 +1,20 @@
+{
+  "name": "storage-buddy-telegram-service",
+  "version": "1.0.0",
+  "description": "Telegram API service for Storage Buddy Bot",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "form-data": "^4.0.0",
+    "node-fetch": "^3.3.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

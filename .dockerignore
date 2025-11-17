@@ -1,0 +1,54 @@
+# Dependencies
+node_modules
+npm-debug.log*
+
+# Build files
+dist
+dist-ssr
+
+# Environment files
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Volumes and backups
+volumes/
+backups/
+
+# Scripts
+scripts/
+
+# Supabase
+supabase/functions/
+supabase/config.toml
+
+# Logs
+logs/
+*.log
