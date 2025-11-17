@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # PostgreSQL Database
   postgres:
-    image: supabase/postgres:15.6.1.99
+    image: supabase/postgres:15.1.1.78
     container_name: storage-buddy-postgres
     restart: unless-stopped
     ports:
@@ -24,7 +24,7 @@ services:
 
   # Supabase Studio - UI для управления
   studio:
-    image: supabase/studio:20241118-2a1f431
+    image: supabase/studio:latest
     container_name: storage-buddy-studio
     restart: unless-stopped
     ports:
@@ -61,7 +61,7 @@ services:
 
   # GoTrue - Authentication
   auth:
-    image: supabase/gotrue:v2.158.1
+    image: supabase/gotrue:latest
     container_name: storage-buddy-auth
     restart: unless-stopped
     environment:
@@ -102,7 +102,7 @@ services:
 
   # PostgREST - REST API
   rest:
-    image: postgrest/postgrest:v12.2.0
+    image: postgrest/postgrest:latest
     container_name: storage-buddy-rest
     restart: unless-stopped
     environment:
@@ -119,7 +119,7 @@ services:
 
   # Realtime - WebSocket сервер
   realtime:
-    image: supabase/realtime:v2.30.23
+    image: supabase/realtime:latest
     container_name: storage-buddy-realtime
     restart: unless-stopped
     environment:
@@ -146,7 +146,7 @@ services:
 
   # Storage - Файловое хранилище
   storage:
-    image: supabase/storage-api:v1.10.0
+    image: supabase/storage-api:latest
     container_name: storage-buddy-storage
     restart: unless-stopped
     environment:
@@ -171,7 +171,7 @@ services:
 
   # ImgProxy - Оптимизация изображений
   imgproxy:
-    image: darthsim/imgproxy:v3.8.0
+    image: darthsim/imgproxy:latest
     container_name: storage-buddy-imgproxy
     restart: unless-stopped
     environment:
@@ -184,7 +184,7 @@ services:
 
   # Meta - API для метаданных
   meta:
-    image: supabase/postgres-meta:v0.83.2
+    image: supabase/postgres-meta:latest
     container_name: storage-buddy-meta
     restart: unless-stopped
     environment:
