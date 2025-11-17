@@ -1,12 +1,20 @@
 -- Создание пользователей для Supabase
--- Этот скрипт выполняется ПЕРЕД миграциями
+-- Этот скрипт выполняется при инициализации PostgreSQL
+
+-- Получаем пароль из переменной окружения (установлен в POSTGRES_PASSWORD)
+-- Все пользователи будут использовать тот же пароль для простоты
 
 -- Создаем роли если их нет
 DO $$
+DECLARE
+  db_password text;
 BEGIN
+  -- Получаем пароль суперпользователя
+  db_password := current_setting('password_encryption');
+
   -- Роль для аутентификации
   IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'authenticator') THEN
-    CREATE ROLE authenticator WITH LOGIN PASSWORD '${POSTGRES_PASSWORD}';
+    EXECUTE format('CREATE ROLE authenticator WITH LOGIN PASSWORD %L', current_setting('password_encryption'));
   END IF;
 
   -- Роль для anon доступа
@@ -24,20 +32,27 @@ BEGIN
     CREATE ROLE service_role NOINHERIT BYPASSRLS;
   END IF;
 
-  -- Роль для supabase_auth_admin
+  -- Роль для supabase_auth_admin (используем тот же пароль)
   IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'supabase_auth_admin') THEN
-    CREATE ROLE supabase_auth_admin WITH LOGIN PASSWORD '${POSTGRES_PASSWORD}';
+    CREATE ROLE supabase_auth_admin WITH LOGIN CREATEDB CREATEROLE;
+    ALTER ROLE supabase_auth_admin WITH PASSWORD 'postgres';
   END IF;
 
   -- Роль для supabase_storage_admin
   IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'supabase_storage_admin') THEN
-    CREATE ROLE supabase_storage_admin WITH LOGIN PASSWORD '${POSTGRES_PASSWORD}';
+    CREATE ROLE supabase_storage_admin WITH LOGIN CREATEDB;
+    ALTER ROLE supabase_storage_admin WITH PASSWORD 'postgres';
   END IF;
 
-  -- Роль для supabase_admin
+  -- Роль для supabase_admin (superuser)
   IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'supabase_admin') THEN
-    CREATE ROLE supabase_admin WITH LOGIN PASSWORD '${POSTGRES_PASSWORD}' SUPERUSER;
+    CREATE ROLE supabase_admin WITH LOGIN SUPERUSER CREATEDB CREATEROLE;
+    ALTER ROLE supabase_admin WITH PASSWORD 'postgres';
   END IF;
+
+  -- Устанавливаем пароль для authenticator
+  ALTER ROLE authenticator WITH PASSWORD 'postgres';
+
 END
 $$;
 
@@ -57,10 +72,23 @@ GRANT ALL ON SCHEMA public TO supabase_storage_admin;
 GRANT ALL ON SCHEMA public TO supabase_admin;
 GRANT USAGE ON SCHEMA public TO anon;
 GRANT USAGE ON SCHEMA public TO authenticated;
+GRANT USAGE ON SCHEMA public TO service_role;
 
--- Устанавливаем права по умолчанию
+-- Устанавливаем права по умолчанию для будущих таблиц
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO supabase_auth_admin;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO supabase_storage_admin;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO supabase_admin;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO anon;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO authenticated;
+
+-- Создаем схемы для Supabase сервисов
+CREATE SCHEMA IF NOT EXISTS auth;
+CREATE SCHEMA IF NOT EXISTS storage;
+CREATE SCHEMA IF NOT EXISTS realtime;
+CREATE SCHEMA IF NOT EXISTS _realtime;
+
+-- Даем права на схемы
+GRANT ALL ON SCHEMA auth TO supabase_auth_admin;
+GRANT ALL ON SCHEMA storage TO supabase_storage_admin;
+GRANT ALL ON SCHEMA realtime TO supabase_admin;
+GRANT ALL ON SCHEMA _realtime TO supabase_admin;
