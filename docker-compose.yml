@@ -133,6 +133,7 @@ services:
     container_name: storage-buddy-storage
     restart: unless-stopped
     environment:
+      PORT: 5000
       ANON_KEY: ${SUPABASE_ANON_KEY}
       SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
       POSTGREST_URL: http://rest:3000

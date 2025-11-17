@@ -14,7 +14,8 @@ dist-ssr
 
 # Self-hosted files
 .env.local
-volumes/
+volumes/storage/
+volumes/ssl/
 backups/
 *.dump
 *.tar.gz
